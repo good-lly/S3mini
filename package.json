@@ -1,0 +1,35 @@
+{
+  "name": "core-s3",
+  "version": "1.0.0",
+  "description": "🪶 A super lightweight S3 client, no-dependency, ideal for edges like @cloudflare @aws @Azure @GoogleCloudPlatform @ceph @minio written in TypeScript",
+  "keywords": [
+    "s3",
+    "s3 client",
+    "s3 sdk",
+    "b2",
+    "b2 client",
+    "r2",
+    "r2 client",
+    "cloudflare",
+    "cloudflare r2",
+    "AWS S3",
+    "Azure Blob Storage",
+    "Google Cloud Storage",
+    "Ceph",
+    "mibion",
+    "backblaze"
+  ],
+  "homepage": "https://github.com/good-lly/core-s3",
+  "bugs": {
+    "url": "https://github.com/good-lly/core-s3/issues"
+  },
+  "author": "good-lly",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/good-lly/core-s3.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module"
+}
