@@ -1,9 +1,12 @@
 {
   "compilerOptions": {
-    "target": "es2022",
+    "target": "ESNext",
     "module": "NodeNext",
     "strict": true,
     "skipLibCheck": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "allowSyntheticDefaultImports": true,
     "lib": ["ESNext"],
     "moduleResolution": "NodeNext",
     "emitDecoratorMetadata": true,
@@ -15,7 +18,8 @@
     "rootDir": "src",
     "sourceMap": true,
     "declaration": true,
-    "declarationMap": true,
+    "declarationMap": false,
+    "emitDeclarationOnly": true,
   },
-  "exclude": ["node_modules", "dev", "tests", "lib"],
+  "exclude": ["node_modules", "dev", "tests", "dist", "lib"],
 }
