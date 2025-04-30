@@ -9,7 +9,7 @@ export const XML_CONTENT_TYPE = 'application/xml';
 export const JSON_CONTENT_TYPE = 'application/json';
 // List of keys that might contain sensitive information
 export const SENSITIVE_KEYS_REDACTED = ['accessKeyId', 'secretAccessKey', 'sessionToken', 'password', 'token'];
-export const MIN_MAX_REQUEST_SIZE_IN_BYTES = 5 * 1024 * 1024;
+export const DEFAULT_REQUEST_SIZE_IN_BYTES = 8 * 1024 * 1024;
 
 // Headers
 export const HEADER_AMZ_CONTENT_SHA256 = 'x-amz-content-sha256';
@@ -22,11 +22,11 @@ export const HEADER_ETAG = 'etag';
 export const HEADER_LAST_MODIFIED = 'last-modified';
 
 // Error messages
-export const ERROR_PREFIX = 'core-s3: ';
+export const ERROR_PREFIX = '[S3mini] ';
 export const ERROR_ACCESS_KEY_REQUIRED = `${ERROR_PREFIX}accessKeyId must be a non-empty string`;
 export const ERROR_SECRET_KEY_REQUIRED = `${ERROR_PREFIX}secretAccessKey must be a non-empty string`;
 export const ERROR_ENDPOINT_REQUIRED = `${ERROR_PREFIX}endpoint must be a non-empty string`;
-export const ERROR_BUCKET_NAME_REQUIRED = `${ERROR_PREFIX}bucketName must be a non-empty string`;
+export const ERROR_ENDPOINT_FORMAT = `${ERROR_PREFIX}endpoint must be a valid URL. Expected format: https://<host>[:port][/base-path]`;
 export const ERROR_KEY_REQUIRED = `${ERROR_PREFIX}key must be a non-empty string`;
 export const ERROR_UPLOAD_ID_REQUIRED = `${ERROR_PREFIX}uploadId must be a non-empty string`;
 export const ERROR_PARTS_REQUIRED = `${ERROR_PREFIX}parts must be a non-empty array`;

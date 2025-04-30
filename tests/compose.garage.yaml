@@ -1,0 +1,13 @@
+services:
+  garage:
+    image: docker.io/dxflrs/garage:v1.1.0
+    volumes:
+      # config
+      - ./garage/garage.toml:/etc/garage.toml:ro
+      # metadata and data, mapped to what the config expects
+      - ./garage/meta:/var/lib/garage/meta
+      - ./garage/data:/var/lib/garage/data
+    ports:
+      - 9000:9000
+      - 3903:3903
+    restart: unless-stopped

@@ -19,7 +19,7 @@
     "sourceMap": true,
     "declaration": true,
     "declarationMap": false,
-    "emitDeclarationOnly": true,
+    "emitDeclarationOnly": true
   },
-  "exclude": ["node_modules", "dev", "tests", "dist", "lib"],
+  "exclude": ["node_modules", "dev", "tests", "dist", "lib"]
 }

@@ -1,0 +1,14 @@
+{
+  "displayName": "S3mini full test",
+  "testTimeout": 60000,
+  "silent": false,
+  "verbose": true,
+  "collectCoverage": false,
+  "testEnvironment": "node",
+  "maxWorkers": "auto",
+  "transform": {},
+  // "setupFilesAfterEnv": ["<rootDir>/tests/setup.js"],
+  "globalSetup": "<rootDir>/tests/setup.js",
+  "globalTeardown": "<rootDir>/tests/teardown.js",
+  "testMatch": ["<rootDir>/tests/*.test.js"]
+}

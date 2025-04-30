@@ -1,30 +1,37 @@
 'use strict';
 
+import type { Crypto } from './types.js';
+declare const crypto: Crypto;
+//   return obj && typeof obj.createHmac === 'function' && typeof obj.createHash === 'function';
+// };
+
 // Initialize crypto functions
-let _createHmac: Function;
-let _createHash: Function;
+let _createHmac: Crypto['createHmac'] = crypto.createHmac || (await import('node:crypto')).createHmac;
+let _createHash: Crypto['createHash'] = crypto.createHash || (await import('node:crypto')).createHash;
 
-// Initialize crypto functions based on environment
-const initCrypto = async () => {
-  try {
-    if (typeof crypto !== 'undefined' && crypto.createHmac && crypto.createHash) {
-      _createHmac = crypto.createHmac;
-      _createHash = crypto.createHash;
-    } else {
-      const nodeCrypto = await import('node:crypto');
-      _createHmac = nodeCrypto.createHmac;
-      _createHash = nodeCrypto.createHash;
-    }
-  } catch (error) {
-    console.error(
-      'core-s3 Module: Crypto functions are not available, please report the issue with necessary description: https://github.com/core-s3/issues',
-    );
-    throw error;
-  }
-};
+// // Initialize crypto functions based on environment
+// const initCrypto = async () => {
+//   try {
+//     // Check if we have Node.js crypto available in current scope
+//     if (typeof crypto !== 'undefined' && isNodeCrypto(crypto)) {
+//       _createHmac = crypto.createHmac;
+//       _createHash = crypto.createHash;
+//     } else {
+//       // Fall back to importing Node.js crypto
+//       const nodeCrypto = await import('node:crypto');
+//       _createHmac = nodeCrypto.createHmac;
+//       _createHash = nodeCrypto.createHash;
+//     }
+//   } catch (error) {
+//     console.error(
+//       'core-s3 Module: Crypto functions are not available, please report the issue with necessary description: https://github.com/core-s3/issues',
+//     );
+//     throw error;
+//   }
+// };
 
-// Initialize crypto on module load
-initCrypto().catch(console.error);
+// // Initialize crypto on module load
+// initCrypto().catch(console.error);
 
 /**
  * Hash content using SHA-256

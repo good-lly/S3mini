@@ -2,27 +2,15 @@ export interface S3Config {
   accessKeyId: string;
   secretAccessKey: string;
   endpoint: string;
-  bucketName: string;
   region?: string;
-  maxRequestSizeInBytes?: number;
+  requestSizeInBytes?: number;
   requestAbortTimeout?: number;
   logger?: Logger;
 }
 
-declare global {
-  interface Crypto {
-    createHmac: (
-      algorithm: string,
-      key: string | Buffer,
-    ) => {
-      update: (data: string | Buffer) => void;
-      digest: (encoding?: 'hex' | 'base64' | 'latin1') => string;
-    };
-    createHash: (algorithm: string) => {
-      update: (data: string | Buffer) => void;
-      digest: (encoding?: 'hex' | 'base64' | 'latin1') => string;
-    };
-  }
+export interface Crypto {
+  createHmac: Function;
+  createHash: Function;
 }
 
 export interface Logger {

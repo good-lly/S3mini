@@ -1,0 +1,28 @@
+services:
+  ceph:
+    image: quay.io/ceph/daemon:v7.0.3-stable-7.0-quincy-centos-stream8-x86_64
+    container_name: ceph-demo
+    restart: unless-stopped
+
+    # tell the entrypoint to run the full demo cluster
+    command: demo
+    environment:
+      CEPH_DAEMON: demo # …or this variable (both work)
+      DEMO_DAEMONS: mon,mgr,osd,rgw # default set; can trim if you wish
+      NETWORK_AUTO_DETECT: 4 # auto‑fills MON_IP & subnet  :contentReference[oaicite:4]{index=4}
+      CEPH_DEMO_UID: ceph_user1
+      CEPH_DEMO_ACCESS_KEY: ceph_access_key
+      CEPH_DEMO_SECRET_KEY: ceph_secret_key
+      RGW_CIVETWEB_PORT: 9100 # internal RGW port (matches host below)
+      RGW_FRONTEND_PORT: 9100
+      # optional: expose the tiny S3 web explorer
+      SREE_PORT: 8180
+
+    volumes:
+      - ./ceph-data:/var/lib/ceph
+      - ./ceph-etc:/etc/ceph
+
+    ports:
+      - '9100:9100'
+      - '8443:8443'
+      - '8180:8080'
