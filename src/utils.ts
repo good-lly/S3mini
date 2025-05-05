@@ -2,36 +2,10 @@
 
 import type { Crypto } from './types.js';
 declare const crypto: Crypto;
-//   return obj && typeof obj.createHmac === 'function' && typeof obj.createHash === 'function';
-// };
 
 // Initialize crypto functions
 let _createHmac: Crypto['createHmac'] = crypto.createHmac || (await import('node:crypto')).createHmac;
 let _createHash: Crypto['createHash'] = crypto.createHash || (await import('node:crypto')).createHash;
-
-// // Initialize crypto functions based on environment
-// const initCrypto = async () => {
-//   try {
-//     // Check if we have Node.js crypto available in current scope
-//     if (typeof crypto !== 'undefined' && isNodeCrypto(crypto)) {
-//       _createHmac = crypto.createHmac;
-//       _createHash = crypto.createHash;
-//     } else {
-//       // Fall back to importing Node.js crypto
-//       const nodeCrypto = await import('node:crypto');
-//       _createHmac = nodeCrypto.createHmac;
-//       _createHash = nodeCrypto.createHash;
-//     }
-//   } catch (error) {
-//     console.error(
-//       'core-s3 Module: Crypto functions are not available, please report the issue with necessary description: https://github.com/core-s3/issues',
-//     );
-//     throw error;
-//   }
-// };
-
-// // Initialize crypto on module load
-// initCrypto().catch(console.error);
 
 /**
  * Hash content using SHA-256
@@ -144,3 +118,26 @@ export const uriEscape = (uriStr: string): string => {
 export const uriResourceEscape = (string: string): string => {
   return uriEscape(string).replace(/%2F/g, '/');
 };
+
+export class S3Error extends Error {
+  readonly code?: string;
+  constructor(msg: string, code?: string, cause?: any) {
+    super(msg);
+    this.name = new.target.name; // keeps instanceof usable
+    this.code = code;
+    this.cause = cause;
+  }
+}
+
+export class S3NetworkError extends S3Error {}
+export class S3ServiceError extends S3Error {
+  readonly status: number;
+  readonly serviceCode?: string;
+  body: string | undefined;
+  constructor(msg: string, status: number, serviceCode?: string, body?: string) {
+    super(msg, serviceCode);
+    this.status = status;
+    this.serviceCode = serviceCode;
+    this.body = body;
+  }
+}

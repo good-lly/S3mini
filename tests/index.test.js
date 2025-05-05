@@ -1,8 +1,14 @@
 'use strict';
 
-import { S3mini } from '../dist/S3mini.min.js';
+import { S3mini, sanitizeETag } from '../dist/S3mini.js';
+
+import { randomBytes } from 'node:crypto';
+
 import * as dotenv from 'dotenv';
 dotenv.config();
+
+// const SECONDS = 1000;
+// jest.setTimeout(70 * SECONDS);
 
 // --- 1 ■ Build one static table with all credentials -----------------------
 const buckets = Object.keys(process.env)
@@ -17,8 +23,11 @@ console.log(
   buckets.map(b => b.provider),
 );
 
+const EIGHT_MB = 8 * 1024 * 1024;
+
+const large_buffer = randomBytes(EIGHT_MB * 3.2);
+
 const byteSize = str => new Blob([str]).size;
-const byteSizeBuffer = buffer => new Blob([buffer]).size;
 
 const key = 'first-test-object.txt';
 const contentString = 'Hello, world!';
@@ -93,7 +102,7 @@ describe.each(buckets)('::: $provider :::', bucket => {
     expect(deletedData).toBe(null);
   });
 
-  it('put and get object with special characters', async () => {
+  it('put and get object with special characters and different types', async () => {
     await s3mini.putObject(specialCharKey, specialCharContentString);
     const data = await s3mini.getObject(specialCharKey);
     expect(data).toEqual(specialCharContentString);
@@ -113,12 +122,149 @@ describe.each(buckets)('::: $provider :::', bucket => {
     expect(bufferData.toString('utf-8')).toBe(specialCharContentBufferExtra.toString('utf-8'));
     expect(bufferData.length).toBe(specialCharContentBufferExtra.length);
 
+    const getObjectLength = await s3mini.getContentLength(specialCharKey);
+    expect(getObjectLength).toBe(specialCharContentBufferExtra.length);
+
     // Clean up
     const delResp = await s3mini.deleteObject(specialCharKey);
     expect(delResp).toBe(true);
 
     // Check if the object is deleted
     const deletedData = await s3mini.getObject(specialCharKey);
+    expect(deletedData).toBe(null);
+  });
+
+  // test If-Match header
+  it('etag and if-match header check', async () => {
+    const response = await s3mini.putObject(key, contentString);
+    const etag = sanitizeETag(response.headers.get('etag'));
+    expect(etag).toBeDefined();
+    expect(etag.length).toBe(32);
+
+    const secondEtag = await s3mini.getEtag(key);
+    expect(secondEtag).toBe(etag);
+    expect(secondEtag.length).toBe(32);
+
+    const values = await s3mini.getObjectWithETag(key);
+    expect(values).toBeInstanceOf(Object);
+    // convert arrayBuffer to string
+    const decoder = new TextDecoder('utf-8');
+    const content = decoder.decode(values.data);
+    expect(content).toBe(contentString);
+    expect(values.etag).toBe(etag);
+    expect(values.etag.length).toBe(32);
+
+    const data = await s3mini.getObject(key, { 'if-match': etag });
+    expect(data).toBe(contentString);
+
+    const randomWrongEtag = 'random-wrong-etag';
+    const anotherResponse = await s3mini.getObject(key, { 'if-match': randomWrongEtag });
+    expect(anotherResponse).toBe(null);
+
+    const reponse2 = await s3mini.getObject(key, { 'if-none-match': etag });
+    expect(reponse2).toBe(null);
+
+    const reponse3 = await s3mini.getObject(key, { 'if-none-match': randomWrongEtag });
+    expect(reponse3).toBe(contentString);
+
+    // Clean up
+    const delResp = await s3mini.deleteObject(key);
+    expect(delResp).toBe(true);
+
+    // Check if the object is deleted
+    const deletedData = await s3mini.getObject(key);
+    expect(deletedData).toBe(null);
+  });
+
+  // list multipart uploads and abort them
+  it('list multipart uploads and abort them all', async () => {
+    let multipartUpload;
+    do {
+      multipartUpload = await s3mini.listMultipartUploads();
+      expect(multipartUpload).toBeDefined();
+      expect(typeof multipartUpload).toBe('object');
+      if (!multipartUpload.uploadId || !multipartUpload.key) {
+        break;
+      }
+      const abortUploadResponse = await s3mini.abortMultipartUpload(multipartUpload.key, multipartUpload.uploadId);
+      expect(abortUploadResponse).toBeDefined();
+      expect(abortUploadResponse.status).toBe('Aborted');
+      expect(abortUploadResponse.key).toEqual(multipartUpload.key);
+      expect(abortUploadResponse.uploadId).toEqual(multipartUpload.uploadId);
+    } while (multipartUpload.uploadId && multipartUpload.key);
+
+    const multipartUpload2 = await s3mini.listMultipartUploads();
+    expect(multipartUpload2).toBeDefined();
+    expect(typeof multipartUpload2).toBe('object');
+    expect(multipartUpload2).not.toHaveProperty('key');
+    expect(multipartUpload2).not.toHaveProperty('uploadId');
+  });
+
+  // multipart upload and download
+  it('multipart upload and download', async () => {
+    const multipartKey = 'multipart-object.txt';
+    const partSize = EIGHT_MB; // 8 MB
+    const totalParts = Math.ceil(large_buffer.length / partSize);
+    const uploadId = await s3mini.getMultipartUploadId(multipartKey);
+
+    const uploadPromises = [];
+    for (let i = 0; i < totalParts; i++) {
+      const partBuffer = large_buffer.subarray(i * partSize, (i + 1) * partSize);
+      uploadPromises.push(s3mini.uploadPart(multipartKey, uploadId, partBuffer, i + 1));
+    }
+    const uploadResponses = await Promise.all(uploadPromises);
+
+    const parts = uploadResponses.map((response, index) => ({
+      partNumber: index + 1,
+      etag: response.etag,
+    }));
+
+    const completeResponse = await s3mini.completeMultipartUpload(multipartKey, uploadId, parts);
+    expect(completeResponse).toBeDefined();
+    expect(typeof completeResponse).toBe('object');
+
+    const etag = completeResponse.etag;
+    expect(etag).toBeDefined();
+    expect(typeof etag).toBe('string');
+    expect(etag.length).toBe(32 + 2); // 32 chars + 2 number of parts flag
+
+    const dataArrayBuffer = await s3mini.getObjectArrayBuffer(multipartKey);
+    const dataBuffer = Buffer.from(dataArrayBuffer);
+    expect(dataBuffer).toBeInstanceOf(Buffer);
+    expect(dataBuffer.toString('utf-8')).toBe(large_buffer.toString('utf-8'));
+
+    const multipartUpload = await s3mini.listMultipartUploads();
+    expect(multipartUpload).toBeDefined();
+    expect(typeof multipartUpload).toBe('object');
+    expect(multipartUpload).not.toHaveProperty('key');
+    expect(multipartUpload).not.toHaveProperty('uploadId');
+
+    // lets test getObjectRaw with range
+    const rangeStart = 2048 * 1024; // 2 MB
+    const rangeEnd = 8 * 1024 * 1024 * 2; // 16 MB
+    const rangeResponse = await s3mini.getObjectRaw(multipartKey, false, rangeStart, rangeEnd);
+    const rangeData = await rangeResponse.arrayBuffer();
+    expect(rangeResponse).toBeDefined();
+
+    expect(rangeData).toBeInstanceOf(ArrayBuffer);
+    const rangeBuffer = Buffer.from(rangeData);
+    expect(rangeBuffer.toString('utf-8')).toBe(large_buffer.subarray(rangeStart, rangeEnd).toString('utf-8'));
+
+    const objectExists = await s3mini.objectExists(multipartKey);
+    expect(objectExists).toBe(true);
+    const objectSize = await s3mini.getContentLength(multipartKey);
+    expect(objectSize).toBe(large_buffer.length);
+    const objectEtag = await s3mini.getEtag(multipartKey);
+    expect(objectEtag).toBe(etag);
+    expect(objectEtag.length).toBe(32 + 2); // 32 chars + 2 number of parts flag
+
+    const delResp = await s3mini.deleteObject(multipartKey);
+    expect(delResp).toBe(true);
+
+    const objectExists2 = await s3mini.objectExists(multipartKey);
+    expect(objectExists2).toBe(false);
+
+    const deletedData = await s3mini.getObject(multipartKey);
     expect(deletedData).toBe(null);
   });
 });

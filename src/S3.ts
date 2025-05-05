@@ -204,8 +204,8 @@ class S3mini {
 
   private _validateUploadPartParams(
     key: string,
-    data: Buffer | string,
     uploadId: string,
+    data: Buffer | string,
     partNumber: number,
     opts: Object,
   ) {
@@ -345,7 +345,7 @@ class S3mini {
     };
 
     const encodedKey = key ? U.uriResourceEscape(key) : '';
-    const { url, headers: signedHeaders } = await this._sign(method, encodedKey, filteredOpts, baseHeaders, body ?? '');
+    const { url, headers: signedHeaders } = await this._sign(method, encodedKey, filteredOpts, baseHeaders, body);
     if (Object.keys(query).length > 0) {
       withQuery = true; // append query string to signed URL
     }
@@ -353,30 +353,6 @@ class S3mini {
       withQuery && Object.keys(filteredOpts).length ? `${url}?${new URLSearchParams(filteredOpts)}` : url;
 
     return this._sendRequest(finalUrl, method, signedHeaders, body, tolerated);
-  }
-
-  public getRegion(): string {
-    return this.region;
-  }
-
-  public setRegion(region: string): void {
-    this.region = region;
-  }
-
-  public getEndpoint(): string {
-    return this.endpoint;
-  }
-
-  public setEndpoint(endpoint: string): void {
-    this.endpoint = endpoint;
-  }
-
-  public getRequestSizeInBytes(): number {
-    return this.requestSizeInBytes;
-  }
-
-  public setRequestSizeInBytes(requestSizeInBytes: number): void {
-    this.requestSizeInBytes = requestSizeInBytes;
   }
 
   public getProps(): T.S3Config {
@@ -481,7 +457,7 @@ class S3mini {
     return output.keyCount === '0' ? [] : output.contents || output;
   }
 
-  public async listMultiPartUploads(
+  public async listMultipartUploads(
     delimiter: string = '/',
     prefix: string = '',
     method: T.HttpMethod = 'GET',
@@ -544,15 +520,6 @@ class S3mini {
     }
   }
 
-  // public getObjectStream(
-  //   key: string,
-  //   opts: Record<string, any> = {},
-  // ): Promise<T.S3StreamResponse | null> {
-  //   const res = this._signedRequest('GET', key, { query: opts, tolerated: [200, 404, 412, 304] });
-  //   if ([404, 412, 304].includes(res.status)) return null;
-  //   return res;
-  // }
-
   public async getObjectRaw(
     key: string,
     wholeFile = true,
@@ -575,7 +542,7 @@ class S3mini {
     return len ? +len : 0;
   }
 
-  public async existObject(key: string, opts: Record<string, any> = {}): Promise<T.ExistResponseCode> {
+  public async objectExists(key: string, opts: Record<string, any> = {}): Promise<T.ExistResponseCode> {
     const res = await this._signedRequest('HEAD', key, {
       query: opts,
       tolerated: [200, 404, 412, 304],
@@ -631,12 +598,12 @@ class S3mini {
 
   public async uploadPart(
     key: string,
-    data: Buffer | string,
     uploadId: string,
+    data: Buffer | string,
     partNumber: number,
     opts: Record<string, any> = {},
   ): Promise<T.UploadPart> {
-    this._validateUploadPartParams(key, data, uploadId, partNumber, opts);
+    this._validateUploadPartParams(key, uploadId, data, partNumber, opts);
 
     const query = { uploadId, partNumber, ...opts };
     const res = await this._signedRequest('PUT', key, {
@@ -645,7 +612,7 @@ class S3mini {
       headers: { [C.HEADER_CONTENT_LENGTH]: typeof data === 'string' ? Buffer.byteLength(data) : data.length },
     });
 
-    return { partNumber, ETag: U.sanitizeETag(res.headers.get('etag') ?? '') };
+    return { partNumber, etag: U.sanitizeETag(res.headers.get('etag') || '') };
   }
 
   public async completeMultipartUpload(
@@ -670,10 +637,15 @@ class S3mini {
     });
 
     const parsed = U.parseXml(await res.text());
-    if (!parsed?.completeMultipartUploadResult)
-      throw new Error(`${C.ERROR_PREFIX}Failed to complete multipart upload: ${JSON.stringify(parsed)}`);
-
-    return parsed.completeMultipartUploadResult;
+    const result =
+      parsed.completeMultipartUploadResult ?? // AWS / MinIO / older R2
+      parsed.completeMultipartUpload ?? // some gateways
+      parsed;
+    if (!result) throw new Error(`${C.ERROR_PREFIX}Failed to complete multipart upload: ${JSON.stringify(parsed)}`);
+    if (result.ETag !== undefined || result.eTag !== undefined) {
+      result.etag = result.eTag || result.ETag; // ⬅️ lower-case prop
+    }
+    return result as T.CompleteMultipartUploadResult;
   }
 
   public async abortMultipartUpload(key: string, uploadId: string): Promise<object> {
@@ -704,7 +676,7 @@ class S3mini {
             part => `
           <Part>
             <PartNumber>${part.partNumber}</PartNumber>
-            <ETag>${part.ETag}</ETag>
+            <ETag>${part.etag}</ETag>
           </Part>
         `,
           )
@@ -726,30 +698,40 @@ class S3mini {
     toleratedStatusCodes: number[] = [],
   ): Promise<Response> {
     this._log('info', `Sending ${method} request to ${url}`, `headers: ${JSON.stringify(headers)}`);
-    const res = await fetch(url, {
-      method,
-      headers,
-      body: ['GET', 'HEAD'].includes(method) ? undefined : body,
-      signal: this.requestAbortTimeout !== undefined ? AbortSignal.timeout(this.requestAbortTimeout) : undefined,
-    });
-    this._log('info', `Response status: ${res.status}, tolerated: ${toleratedStatusCodes.join(',')}`);
-    if (!res.ok && !toleratedStatusCodes.includes(res.status)) {
-      await this._handleErrorResponse(res);
+    try {
+      const res = await fetch(url, {
+        method,
+        headers,
+        body: ['GET', 'HEAD'].includes(method) ? undefined : body,
+        signal: this.requestAbortTimeout !== undefined ? AbortSignal.timeout(this.requestAbortTimeout) : undefined,
+      });
+      this._log('info', `Response status: ${res.status}, tolerated: ${toleratedStatusCodes.join(',')}`);
+      if (!res.ok && !toleratedStatusCodes.includes(res.status)) {
+        await this._handleErrorResponse(res);
+      }
+      return res;
+    } catch (err: any) {
+      const code = err?.code ?? err?.cause?.code;
+      if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') {
+        throw new U.S3NetworkError(`Could not resolve host “${new URL(url).hostname}”`, code, err);
+      }
+      if (code === 'ETIMEDOUT' || code === 'ECONNREFUSED') {
+        throw new U.S3NetworkError(`S3 endpoint unreachable: ${code}`, code, err);
+      }
+      // anything else → re-throw as unknown network failure
+      throw new U.S3NetworkError('Unknown network failure', code, err);
     }
-    return res;
   }
 
   private async _handleErrorResponse(res: Response) {
     const errorBody = await res.text();
-    const errorCode = res.headers.get('x-amz-error-code') || 'Unknown';
+    const svcCode = res.headers.get('x-amz-error-code') ?? 'Unknown';
     const errorMessage = res.headers.get('x-amz-error-message') || res.statusText;
     this._log(
       'error',
-      `${C.ERROR_PREFIX}Request failed with status ${res.status}: ${errorCode} - ${errorMessage},err body: ${errorBody}`,
+      `${C.ERROR_PREFIX}Request failed with status ${res.status}: ${svcCode} - ${errorMessage},err body: ${errorBody}`,
     );
-    throw new Error(
-      `${C.ERROR_PREFIX}Request failed with status ${res.status}: ${errorCode} - ${errorMessage}, err body: ${errorBody}`,
-    );
+    throw new U.S3ServiceError(`S3 returned ${res.status} – ${svcCode}`, res.status, svcCode, errorBody);
   }
 
   private _buildCanonicalQueryString(queryParams: Object): string {

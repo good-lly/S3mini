@@ -3,7 +3,24 @@ import { nodeResolve } from '@rollup/plugin-node-resolve';
 import dts from 'rollup-plugin-dts';
 import terser from '@rollup/plugin-terser';
 
-const production = !process.env.ROLLUP_WATCH;
+const terserMin = terser({
+  module: true,
+  ecma: 2020,
+  compress: {
+    passes: 3,
+    unsafe: true,
+    unsafe_arrows: true,
+    unsafe_methods: true,
+    unsafe_proto: true,
+    unsafe_math: true,
+    pure_getters: true,
+    drop_console: true,
+  },
+  mangle: {
+    properties: { regex: /^_/ },
+  },
+  format: { comments: false },
+});
 
 export default [
   {
@@ -18,7 +35,7 @@ export default [
         file: 'dist/S3mini.min.js',
         format: 'esm',
         sourcemap: true,
-        plugins: [terser()],
+        plugins: [terserMin],
       },
     ],
     plugins: [
@@ -27,12 +44,6 @@ export default [
         tsconfig: './tsconfig.json',
         sourceMap: true,
       }),
-      production &&
-        terser({
-          format: {
-            comments: false,
-          },
-        }),
     ],
     treeshake: {
       moduleSideEffects: false,

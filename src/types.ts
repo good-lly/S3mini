@@ -21,14 +21,15 @@ export interface Logger {
 
 export interface UploadPart {
   partNumber: number;
-  ETag: string;
+  etag: string;
 }
 
 export interface CompleteMultipartUploadResult {
-  Location: string;
-  Bucket: string;
-  Key: string;
-  ETag: string;
+  location: string;
+  bucket: string;
+  key: string;
+  etag: string;
+  eTag: string;
 }
 
 export type HttpMethod = 'POST' | 'GET' | 'HEAD' | 'PUT' | 'DELETE';
@@ -37,3 +38,10 @@ export type HttpMethod = 'POST' | 'GET' | 'HEAD' | 'PUT' | 'DELETE';
 // true - Found (200)
 // null - ETag mismatch (412)
 export type ExistResponseCode = false | true | null;
+
+// export type S3ServiceError = {
+//   msg: string;
+//   code: string;
+//   statusCode: number;
+//   body: string;
+// };
