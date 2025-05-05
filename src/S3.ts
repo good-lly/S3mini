@@ -1,7 +1,7 @@
 'use strict';
 
 import * as C from './consts.js';
-import * as T from './types.js';
+import type * as T from './types.js';
 import * as U from './utils.js';
 
 /**
