@@ -1,24 +1,26 @@
-# 🪶 core-s3: essentials S3-compatible client. Edge computing ready.
+# 👶 S3mini: Essential only S3 client. Edge computing ready. Zero-dependency.
 
-The `core-s3` library is a lightweight JavaScript/TypeScript zero‑dependency SDK for S3-compatible storage services running on NodeJS, Bun, Cloudflare Workers, and edge computing platforms. It uses only essential S3 APIs. Tested on Cloudflare R2, Backblaze B2, MinIO. (No Browser support)
+The `S3mini` library is only lightweight (~13KB) TypeScript zero‑dependency library for S3-compatible storage services. Running on NodeJS, Bun, Cloudflare Workers, and edge computing platforms. It supports only minimum S3 APIs. Tested on Cloudflare R2, Backblaze B2, DigitalOcean Storage, MinIO. (No Browser support)
 
 ## Features
 
-- 🚀 Lightweight: Only ~17KB minified
+- 🚀 Lightweight: Only ~13KB unminified
 - 🔧 Zero dependencies
 - 💻 Works on NodeJS, Bun, Cloudflare workers, ideal for edge computing (no browser support)
-- 🔑 Supports essential S3 APIs (list, put, get, delete and a few more)
+- 🔑 Supports only essential S3 APIs (list, put, get, delete and a few more)
 - 🔁 Streaming support & multipart uploads for large files
-- 📦 Bring your own S3 bucket (tested on: Cloudflare R2, Minio)
+- 📦 Bring your own S3 bucket (tested on: Cloudflare R2, Backblaze B2, DigitalOcean Storage, MinIO)
 
-## S3 API compatibility
+## Supported Operations
 
-Bucket ops
+The library supports the following operations:
+
+#### Bucket ops
 
 - ✅ HeadBucket
 - ✅ CreateBucket
 
-Objects ops
+#### Objects ops
 
 - ✅ ListObjectsV2 (listObjects)
 - ✅ GetObject
