@@ -24,8 +24,9 @@
 
     "declaration": false,
     "declarationMap": false,
-    "emitDeclarationOnly": false
+    "emitDeclarationOnly": false,
+    "types": ["node"] // or "typeRoots": ["./node_modules/@types"]
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dev", "tests", "dist", "lib"]
+  "exclude": ["node_modules", "dev", "tests", "dist", "lib", "tests/**/*", "dist/**/*", "lib/**/*"]
 }

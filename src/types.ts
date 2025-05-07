@@ -1,3 +1,5 @@
+import type { createHash as NodeCreateHash, createHmac as NodeCreateHmac } from 'node:crypto';
+
 export interface S3Config {
   accessKeyId: string;
   secretAccessKey: string;
@@ -9,14 +11,14 @@ export interface S3Config {
 }
 
 export interface Crypto {
-  createHmac: Function;
-  createHash: Function;
+  createHmac: typeof NodeCreateHmac;
+  createHash: typeof NodeCreateHash;
 }
 
 export interface Logger {
-  info: (message: string, ...args: any[]) => void;
-  warn: (message: string, ...args: any[]) => void;
-  error: (message: string, ...args: any[]) => void;
+  info: (message: string, ...args: unknown[]) => void;
+  warn: (message: string, ...args: unknown[]) => void;
+  error: (message: string, ...args: unknown[]) => void;
 }
 
 export interface UploadPart {
@@ -29,8 +31,48 @@ export interface CompleteMultipartUploadResult {
   bucket: string;
   key: string;
   etag: string;
-  eTag: string;
+  eTag: string; // for backward compatibility
+  ETag: string; // for backward compatibility
 }
+
+interface ListBucketResult {
+  keyCount: string;
+  contents?: Array<Record<string, unknown>>;
+}
+interface ListBucketError {
+  error: { code: string; message: string };
+}
+
+export type ListBucketResponse = { listBucketResult: ListBucketResult } | { error: ListBucketError };
+
+export interface ListMultipartUploadSuccess {
+  listMultipartUploadsResult: {
+    bucket: string;
+    key: string;
+    uploadId: string;
+    size?: number;
+    mtime?: Date | undefined;
+    etag?: string;
+    eTag?: string; // for backward compatibility
+    parts: UploadPart[];
+    isTruncated: boolean;
+    uploads: UploadPart[];
+  };
+}
+
+export interface MultipartUploadError {
+  error: {
+    code: string;
+    message: string;
+  };
+}
+
+export interface ErrorWithCode {
+  code?: string;
+  cause?: { code?: string };
+}
+
+export type ListMultipartUploadResponse = ListMultipartUploadSuccess | MultipartUploadError;
 
 export type HttpMethod = 'POST' | 'GET' | 'HEAD' | 'PUT' | 'DELETE';
 
@@ -39,9 +81,8 @@ export type HttpMethod = 'POST' | 'GET' | 'HEAD' | 'PUT' | 'DELETE';
 // null - ETag mismatch (412)
 export type ExistResponseCode = false | true | null;
 
-// export type S3ServiceError = {
-//   msg: string;
-//   code: string;
-//   statusCode: number;
-//   body: string;
-// };
+export type XmlValue = string | XmlMap | boolean | number | null;
+export interface XmlMap {
+  [key: string]: XmlValue | XmlValue[]; // one or many children
+  [key: number]: XmlValue | XmlValue[]; // allow numeric keys
+}

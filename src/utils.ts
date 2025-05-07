@@ -1,34 +1,31 @@
 'use strict';
 
-import type { Crypto } from './types.js';
+import type { Crypto, XmlValue, XmlMap, ListBucketResponse, ErrorWithCode } from './types.js';
 declare const crypto: Crypto;
 
 // Initialize crypto functions
-let _createHmac: Crypto['createHmac'] = crypto.createHmac || (await import('node:crypto')).createHmac;
-let _createHash: Crypto['createHash'] = crypto.createHash || (await import('node:crypto')).createHash;
+const _createHmac: Crypto['createHmac'] = crypto.createHmac || (await import('node:crypto')).createHmac;
+const _createHash: Crypto['createHash'] = crypto.createHash || (await import('node:crypto')).createHash;
 
 /**
  * Hash content using SHA-256
- * @param content Content to hash
- * @returns Hex encoded hash
+ * @param {string|Buffer} content  – data to hash
+ * @returns {string} Hex encoded hash
  */
-export const hash = async (content: string | Buffer): Promise<string> => {
-  const hashSum = _createHash('sha256');
-  hashSum.update(content);
-  return hashSum.digest('hex');
+export const hash = (content: string | Buffer): string => {
+  return _createHash('sha256').update(content).digest('hex');
 };
 
 /**
- * Create HMAC for content using key
- * @param key Key for HMAC
- * @param content Content to generate HMAC for
- * @param encoding Output encoding
- * @returns HMAC digest
+ * Compute HMAC-SHA-256 of arbitrary data and return a hex string.
+ * @param {string|Buffer} key      – secret key
+ * @param {string|Buffer} content  – data to authenticate
+ * @param {BufferEncoding} [encoding='hex'] – hex | base64 | …
+ * @returns {string | Buffer} hex encoded HMAC
  */
-export const hmac = async (key: string | Buffer, content: string, encoding?: 'hex'): Promise<string> => {
-  const hmacSum = _createHmac('sha256', key);
-  hmacSum.update(content);
-  return hmacSum.digest(encoding);
+export const hmac = (key: string | Buffer, content: string | Buffer, encoding?: 'hex' | 'base64'): string | Buffer => {
+  const mac = _createHmac('sha256', key).update(content);
+  return encoding ? mac.digest(encoding) : mac.digest();
 };
 
 /**
@@ -47,51 +44,48 @@ export const sanitizeETag = (etag: string): string => {
   return etag.replace(/^("|&quot;|&#34;)|("|&quot;|&#34;)$/g, m => replaceChars[m] as string);
 };
 
-// Define which XML keys should be treated as arrays even if they contain only one element
-const expectArray: { [key: string]: boolean } = {
-  contents: true,
-};
+const entityMap = {
+  '&quot;': '"',
+  '&apos;': "'",
+  '&lt;': '<',
+  '&gt;': '>',
+  '&amp;': '&',
+} as const;
+
+const unescapeXml = (value: string): string =>
+  value.replace(/&(quot|apos|lt|gt|amp);/g, m => entityMap[m as keyof typeof entityMap] ?? m);
 
 /**
- * Parse XML string into a JavaScript object
- * @param str XML string to parse
- * @returns Parsed JavaScript object
+ * Parse a very small subset of XML into a JS structure.
+ *
+ * @param input raw XML string
+ * @returns string for leaf nodes, otherwise a map of children
  */
-export const parseXml = (str: string): string | object | any => {
-  const unescapeXml = (value: string): string => {
-    return value
-      .replace(/&quot;/g, '"')
-      .replace(/&apos;/g, "'")
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&amp;/g, '&');
-  };
+export const parseXml = (input: string): XmlValue => {
+  const RE_TAG = /<(\w)([-\w]+)(?:\/|[^>]*>((?:(?!<\1)[\s\S])*)<\/\1\2)>/gm;
+  const result: XmlMap = {}; // strong type, no `any`
+  let match: RegExpExecArray | null;
 
-  const json = {};
-  const re = /<(\w)([-\w]+)(?:\/|[^>]*>((?:(?!<\1)[\s\S])*)<\/\1\2)>/gm;
-  let match;
+  while ((match = RE_TAG.exec(input)) !== null) {
+    const [, prefix = '', key, inner] = match;
+    const fullKey = `${prefix.toLowerCase()}${key}`;
+    const node: XmlValue = inner ? parseXml(inner) : '';
 
-  while ((match = re.exec(str))) {
-    const [, prefix, key, value] = match;
-    // Add null check for prefix
-    const fullKey = (prefix ? prefix.toLowerCase() : '') + key;
-    const parsedValue = value != null ? parseXml(value) : true;
-
-    if (typeof parsedValue === 'string') {
-      (json as { [key: string]: any })[fullKey] = sanitizeETag(unescapeXml(parsedValue));
-    } else if (Array.isArray((json as { [key: string]: any })[fullKey])) {
-      (json as { [key: string]: any })[fullKey].push(parsedValue);
+    const current = result[fullKey];
+    if (current === undefined) {
+      // first occurrence
+      result[fullKey] = node;
+    } else if (Array.isArray(current)) {
+      // already an array
+      current.push(node);
     } else {
-      (json as { [key: string]: any })[fullKey] =
-        (json as { [key: string]: any })[fullKey] != null
-          ? [(json as { [key: string]: any })[fullKey], parsedValue]
-          : expectArray[fullKey]
-            ? [parsedValue]
-            : parsedValue;
+      // promote to array on the second occurrence
+      result[fullKey] = [current, node];
     }
   }
 
-  return Object.keys(json).length ? json : unescapeXml(str);
+  // No child tags? — return the text, after entity decode
+  return Object.keys(result).length > 0 ? result : unescapeXml(input);
 };
 
 /**
@@ -119,9 +113,24 @@ export const uriResourceEscape = (string: string): string => {
   return uriEscape(string).replace(/%2F/g, '/');
 };
 
+export const isListBucketResponse = (value: unknown): value is ListBucketResponse => {
+  return typeof value === 'object' && value !== null && ('listBucketResult' in value || 'error' in value);
+};
+
+export const extractErrCode = (e: unknown): string | undefined => {
+  if (typeof e !== 'object' || e === null) {
+    return undefined;
+  }
+  const err = e as ErrorWithCode;
+  if (typeof err.code === 'string') {
+    return err.code;
+  }
+  return typeof err.cause?.code === 'string' ? err.cause.code : undefined;
+};
+
 export class S3Error extends Error {
   readonly code?: string;
-  constructor(msg: string, code?: string, cause?: any) {
+  constructor(msg: string, code?: string, cause?: unknown) {
     super(msg);
     this.name = new.target.name; // keeps instanceof usable
     this.code = code;
