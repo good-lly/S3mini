@@ -17,10 +17,14 @@ const compat = new FlatCompat({
 
 export default defineConfig([
   globalIgnores([
+    '**/.*',
     '/dist',
     '/node_modules',
     '/examples',
     '/tests',
+    '/tests/**/*',
+    'eslint.config.js',
+    'jest.config*.js',
     'rollup.config.js',
     'jest.config.js',
     'jest.config.perf.js',

@@ -150,3 +150,53 @@ export class S3ServiceError extends S3Error {
     this.body = body;
   }
 }
+
+/**
+ * Run async-returning tasks in batches with an *optional* minimum
+ * spacing (minIntervalMs) between the *start* times of successive batches.
+ *
+ * @param {Iterable<() => Promise<unknonw>>} tasks       – functions returning Promises
+ * @param {number} [batchSize=30]                    – max concurrent requests
+ * @param {number} [minIntervalMs=0]                 – ≥0; 0 means “no pacing”
+ * @returns {Promise<Array<PromiseSettledResult<unknonw>>>}
+ */
+export const runInBatches = async (
+  tasks: Iterable<() => Promise<unknown>>,
+  batchSize: number = 30,
+  minIntervalMs: number = 0,
+): Promise<Array<PromiseSettledResult<unknown>>> => {
+  const allResults: PromiseSettledResult<unknown>[] = [];
+  let batch: (() => Promise<unknown>)[] = [];
+
+  for (const task of tasks) {
+    batch.push(task);
+
+    if (batch.length === batchSize) {
+      await executeBatch(batch);
+      batch = [];
+    }
+  }
+
+  if (batch.length) {
+    await executeBatch(batch);
+  }
+  return allResults;
+
+  // ---------- helpers ----------
+  async function executeBatch(batchFns: (() => Promise<unknown>)[]): Promise<void> {
+    const start = minIntervalMs ? Date.now() : 0;
+
+    // launch the whole batch
+    const settled = await Promise.allSettled(batchFns.map(fn => fn()));
+    allResults.push(...settled); // preserve order
+
+    // enforce the *minimum* interval (only if requested)
+    if (minIntervalMs) {
+      const elapsed = Date.now() - start;
+      const remaining = minIntervalMs - elapsed;
+      if (remaining > 0) {
+        await new Promise(r => setTimeout(r, remaining));
+      }
+    }
+  }
+};

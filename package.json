@@ -22,7 +22,7 @@
   "scripts": {
     "tsc": "tsc",
     "typecheck": "tsc --noEmit",
-    "test:full": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.json",
+    "test:full": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.js --verbose",
     "test:perf": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.perf.json --detectOpenHandles --forceExit",
     "lint": "eslint src --ext .ts",
     "format": "prettier -w src",

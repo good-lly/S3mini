@@ -1,33 +1,35 @@
 'use strict';
-
-import { S3mini, sanitizeETag } from '../dist/S3mini.js';
-
+import { jest, describe, it, expect } from '@jest/globals';
+import { S3mini, sanitizeETag, runInBatches } from '../dist/S3mini.js';
 import { randomBytes } from 'node:crypto';
 
-import * as dotenv from 'dotenv';
-dotenv.config();
+// import * as dotenv from 'dotenv';
+// dotenv.config();
 
 // const SECONDS = 1000;
 // jest.setTimeout(70 * SECONDS);
 
+// OLDER APPROACH
 // --- 1 ■ Build one static table with all credentials -----------------------
-const buckets = Object.keys(process.env)
-  .filter(k => k.startsWith('BUCKET_ENV_'))
-  .map(k => {
-    const [provider, accessKeyId, secretAccessKey, endpoint, region] = process.env[k].split(',');
-    return { provider, accessKeyId, secretAccessKey, endpoint, region };
-  });
+// const buckets = Object.keys(process.env)
+//   .filter(k => k.startsWith('BUCKET_ENV_'))
+//   .map(k => {
+//     const [provider, accessKeyId, secretAccessKey, endpoint, region] = process.env[k].split(',');
+//     return { provider, accessKeyId, secretAccessKey, endpoint, region };
+//   });
 
-console.log(
-  'Configured providers:',
-  buckets.map(b => b.provider),
-);
+// console.log(
+//   'Configured providers:',
+//   buckets.map(b => b.provider),
+// );
 
 const EIGHT_MB = 8 * 1024 * 1024;
 
 const large_buffer = randomBytes(EIGHT_MB * 3.2);
 
 const byteSize = str => new Blob([str]).size;
+
+const OP_CAP = 50;
 
 const key = 'first-test-object.txt';
 const contentString = 'Hello, world!';
@@ -37,7 +39,7 @@ const specialCharContentBufferExtra = Buffer.from(specialCharContentString + ' e
 const specialCharKey = 'special-char key with spaces.txt';
 
 // --- 2 ■ A separate describe makes test output nicer -----------------------
-describe.each(buckets)('::: $provider :::', bucket => {
+export const testRunner = bucket => {
   const s3mini = new S3mini({
     accessKeyId: bucket.accessKeyId,
     secretAccessKey: bucket.secretAccessKey,
@@ -56,7 +58,19 @@ describe.each(buckets)('::: $provider :::', bucket => {
     }
     if (exists) {
       const list = await s3mini.listObjects();
-      await Promise.all(list.map(o => s3mini.deleteObject(o.key)));
+      expect(list).toBeInstanceOf(Array);
+      if (list.length > 0) {
+        expect(list.length).toBeGreaterThan(0);
+        const generator = function* (n) {
+          for (let i = 0; i < n; i++) yield () => s3mini.deleteObject(list[i].key);
+        };
+        await runInBatches(generator(list.length), OP_CAP, 1_000);
+        // doublecheck that the bucket is empty
+        const list2 = await s3mini.listObjects();
+        expect(list2).toBeInstanceOf(Array);
+        expect(list2.length).toBe(0);
+        // console.log('Bucket is empty');
+      }
     }
   });
 
@@ -267,4 +281,74 @@ describe.each(buckets)('::: $provider :::', bucket => {
     const deletedData = await s3mini.getObject(multipartKey);
     expect(deletedData).toBe(null);
   });
-});
+
+  it('extensive list objects', async () => {
+    const prefix = `test-prefix-${Date.now()}/`;
+    const objAll = await s3mini.listObjects('/', prefix);
+    expect(objAll).toEqual([]);
+    expect(objAll).toBeInstanceOf(Array);
+    expect(objAll).toHaveLength(0);
+
+    await Promise.all([
+      s3mini.putObject(`${prefix}object1.txt`, contentString),
+      s3mini.putObject(`${prefix}object2.txt`, contentString),
+      s3mini.putObject(`${prefix}object3.txt`, contentString),
+    ]);
+
+    const objsUnlimited = await s3mini.listObjects('/', prefix);
+    expect(objsUnlimited).toBeInstanceOf(Array);
+    expect(objsUnlimited).toHaveLength(3);
+
+    const objsLimited = await s3mini.listObjects('/', prefix, 2);
+    expect(objsLimited).toBeInstanceOf(Array);
+    expect(objsLimited).toHaveLength(2);
+    expect(objsLimited[0].key).toBe(`${prefix}object1.txt`);
+    expect(objsLimited[1].key).toBe(`${prefix}object2.txt`);
+
+    await Promise.all(objsUnlimited.map(o => s3mini.deleteObject(o.key)));
+    expect(await s3mini.listObjects('/', prefix)).toEqual([]);
+  });
+
+  it('lists objects with pagination', async () => {
+    /* ----- test data setup ----- */
+    const prefix = `test-prefix-${Date.now()}/`; // isolate this run
+    const totalKeys = 1_114;
+    const pageSmall = 2;
+    const pageLarge = 900;
+
+    // Bucket must start empty for this prefix
+    expect(await s3mini.listObjects('/', prefix)).toEqual([]);
+
+    // Upload 1 114 zero-byte objects in parallel
+    const generator = function* (n) {
+      for (let i = 0; i < n; i++) yield () => s3mini.putObject(`${prefix}object${i}.txt`, contentString);
+    };
+    await runInBatches(generator(totalKeys), OP_CAP, 1_000);
+
+    /* ----- assertions ----- */
+    // 1️⃣  Small page (2)
+    const firstTwo = await s3mini.listObjects('/', prefix, pageSmall);
+    expect(firstTwo).toBeInstanceOf(Array);
+    expect(firstTwo).toHaveLength(pageSmall); // ✔ array length = 2:contentReference[oaicite:1]{index=1}
+
+    // 2️⃣  “Maximum” single page (1 000)
+    const first900Hundred = await s3mini.listObjects('/', prefix, pageLarge);
+    expect(first900Hundred).toBeInstanceOf(Array);
+    expect(first900Hundred).toHaveLength(pageLarge); // ✔ array length = 900:contentReference[oaicite:2]{index=2}
+    expect(first900Hundred[0].key).toBe(`${prefix}object0.txt`); // ✔ first object key
+
+    // 3️⃣  Unlimited (implicit pagination inside helper)
+    const everything = await s3mini.listObjects('/', prefix); // maxKeys = undefined ⇒ list all
+    expect(everything).toBeInstanceOf(Array);
+    expect(everything).toHaveLength(totalKeys);
+
+    // cleanup
+    const generator2 = function* (n) {
+      for (let i = 0; i < n; i++) yield () => s3mini.deleteObject(everything[i].key);
+    };
+    await runInBatches(generator2(everything.length), OP_CAP, 1_000);
+
+    // Verify bucket now empty for this prefix
+    expect(await s3mini.listObjects('/', prefix)).toEqual([]);
+  });
+};

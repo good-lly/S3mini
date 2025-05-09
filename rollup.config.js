@@ -50,6 +50,8 @@ export default [
       propertyReadSideEffects: false,
       tryCatchDeoptimization: false,
     },
+
+    external: ['node:crypto'],
   },
   {
     input: 'src/index.ts',
@@ -58,5 +60,6 @@ export default [
       format: 'esm',
     },
     plugins: [dts()],
+    external: ['node:crypto'],
   },
 ];
