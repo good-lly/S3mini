@@ -79,7 +79,12 @@ export const testRunner = bucket => {
   });
 
   it('bucket exists', async () => {
-    const exists = await s3mini.bucketExists();
+    let exists = await s3mini.bucketExists();
+    if (!exists) {
+      const createBucketResponse = await s3mini.createBucket();
+      expect(createBucketResponse).toBeDefined();
+      exists = await s3mini.bucketExists();
+    }
     expect(exists).toBe(true);
 
     const nonExistentBucket = new S3mini({

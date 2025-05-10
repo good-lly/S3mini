@@ -22,8 +22,8 @@
   "scripts": {
     "tsc": "tsc",
     "typecheck": "tsc --noEmit",
-    "test:full": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.js --verbose",
-    "test:perf": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.perf.json --detectOpenHandles --forceExit",
+    "test:e2e": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.js --verbose",
+    "test:perf": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.perf.js --verbose",
     "lint": "eslint src --ext .ts",
     "format": "prettier -w src",
     "formatcheck": "prettier --list-different src",
