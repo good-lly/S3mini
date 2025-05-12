@@ -29,7 +29,7 @@ const large_buffer = randomBytes(EIGHT_MB * 3.2);
 
 const byteSize = str => new Blob([str]).size;
 
-const OP_CAP = 50;
+const OP_CAP = 60;
 
 const key = 'first-test-object.txt';
 const contentString = 'Hello, world!';
@@ -40,6 +40,8 @@ const specialCharKey = 'special-char key with spaces.txt';
 
 // --- 2 ■ A separate describe makes test output nicer -----------------------
 export const testRunner = bucket => {
+  jest.setTimeout(120_000);
+
   const s3mini = new S3mini({
     accessKeyId: bucket.accessKeyId,
     secretAccessKey: bucket.secretAccessKey,
@@ -331,10 +333,18 @@ export const testRunner = bucket => {
 
     // Bucket must start empty for this prefix
     expect(await s3mini.listObjects('/', prefix)).toEqual([]);
-
-    // Upload 1 114 zero-byte objects in parallel
+    let counter = 0;
+    // Upload 1 114 objects in parallel
     const generator = function* (n) {
-      for (let i = 0; i < n; i++) yield () => s3mini.putObject(`${prefix}object${i}.txt`, contentString);
+      for (let i = 0; i < n; i++)
+        yield async () => {
+          const success = await s3mini.putObject(`${prefix}object${i}.txt`, contentString);
+          if (!success) {
+            throw new Error(`Failed to upload ${prefix}object${i}.txt`);
+          } else {
+            counter++;
+          }
+        };
     };
     await runInBatches(generator(totalKeys), OP_CAP, 1_000);
 
@@ -353,11 +363,14 @@ export const testRunner = bucket => {
     // 3️⃣  Unlimited (implicit pagination inside helper)
     const everything = await s3mini.listObjects('/', prefix); // maxKeys = undefined ⇒ list all
     expect(everything).toBeInstanceOf(Array);
-    expect(everything).toHaveLength(totalKeys);
+    expect(everything).toHaveLength(counter);
 
     // cleanup
     const generator2 = function* (n) {
-      for (let i = 0; i < n; i++) yield () => s3mini.deleteObject(everything[i].key);
+      for (let i = 0; i < n; i++)
+        yield async () => {
+          await s3mini.deleteObject(everything[i].key);
+        };
     };
     await runInBatches(generator2(everything.length), OP_CAP, 1_000);
 

@@ -782,11 +782,7 @@ class S3mini {
         method,
         headers,
         keepalive: true,
-        body: ['GET', 'HEAD'].includes(method)
-          ? undefined
-          : typeof body === 'string'
-            ? body
-            : Buffer.from(body as Buffer),
+        body: ['GET', 'HEAD'].includes(method) ? undefined : (body as string),
         signal: this.requestAbortTimeout !== undefined ? AbortSignal.timeout(this.requestAbortTimeout) : undefined,
       });
       this._log('info', `Response status: ${res.status}, tolerated: ${toleratedStatusCodes.join(',')}`);
@@ -796,16 +792,10 @@ class S3mini {
       return res;
     } catch (err: unknown) {
       const code = U.extractErrCode(err);
-      switch (code) {
-        case 'ENOTFOUND':
-        case 'EAI_AGAIN':
-          throw new U.S3NetworkError(`Could not resolve host “${new URL(url).hostname}”`, code, err);
-        case 'ETIMEDOUT':
-        case 'ECONNREFUSED':
-          throw new U.S3NetworkError(`S3 endpoint unreachable: ${code}`, code, err);
-        default:
-          throw new U.S3NetworkError('Unknown network failure', code, err);
+      if (code && ['ENOTFOUND', 'EAI_AGAIN', 'ETIMEDOUT', 'ECONNREFUSED'].includes(code)) {
+        throw new U.S3NetworkError(`S3 network error: ${code}`, code, err);
       }
+      throw err;
     }
   }
 

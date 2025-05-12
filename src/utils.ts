@@ -162,40 +162,35 @@ export class S3ServiceError extends S3Error {
  */
 export const runInBatches = async (
   tasks: Iterable<() => Promise<unknown>>,
-  batchSize: number = 30,
-  minIntervalMs: number = 0,
+  batchSize = 30,
+  minIntervalMs = 0,
 ): Promise<Array<PromiseSettledResult<unknown>>> => {
   const allResults: PromiseSettledResult<unknown>[] = [];
-  let batch: (() => Promise<unknown>)[] = [];
+  let batch: Array<() => Promise<unknown>> = [];
 
   for (const task of tasks) {
     batch.push(task);
-
     if (batch.length === batchSize) {
       await executeBatch(batch);
       batch = [];
     }
   }
-
   if (batch.length) {
     await executeBatch(batch);
   }
   return allResults;
 
-  // ---------- helpers ----------
-  async function executeBatch(batchFns: (() => Promise<unknown>)[]): Promise<void> {
-    const start = minIntervalMs ? Date.now() : 0;
+  // ───────── helpers ──────────
+  async function executeBatch(batchFns: Array<() => Promise<unknown>>): Promise<void> {
+    const start = Date.now();
 
-    // launch the whole batch
     const settled = await Promise.allSettled(batchFns.map(fn => fn()));
-    allResults.push(...settled); // preserve order
+    allResults.push(...settled);
 
-    // enforce the *minimum* interval (only if requested)
-    if (minIntervalMs) {
-      const elapsed = Date.now() - start;
-      const remaining = minIntervalMs - elapsed;
-      if (remaining > 0) {
-        await new Promise(r => setTimeout(r, remaining));
+    if (minIntervalMs > 0) {
+      const wait = minIntervalMs - (Date.now() - start);
+      if (wait > 0) {
+        await new Promise(r => setTimeout(r, wait));
       }
     }
   }
