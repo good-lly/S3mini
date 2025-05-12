@@ -1,6 +1,6 @@
 'use strict';
 
-import { CoreS3 } from '../dist/core-s3.js';
+import { CoreS3 } from '../dist/S3mini.js';
 import * as dotenv from 'dotenv';
 dotenv.config({ debug: false });
 

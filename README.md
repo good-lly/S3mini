@@ -54,13 +54,13 @@ Not implemented (tbd)
 
 ```javascript
 // Using npm
-npm install core-s3
+npm install S3mini
 
 // Using yarn
-yarn add core-s3
+yarn add S3mini
 
 // Using pnpm
-pnpm add core-s3
+pnpm add S3mini
 ```
 
 ## Constructor
@@ -68,9 +68,9 @@ pnpm add core-s3
 Create a new instance of the S3 client:
 
 ```javascript
-import { S3 } from 'core-s3';
+import { S3mini } from 'S3mini';
 
-const s3Client = new S3({
+const s3client = new S3mini({
   accessKeyId: 'YOUR_ACCESS_KEY_ID',
   secretAccessKey: 'YOUR_SECRET_ACCESS_KEY',
   endpoint: 'https://s3.amazonaws.com/...',
@@ -88,14 +88,14 @@ const s3Client = new S3({
 #### Check if Bucket Exists
 
 ```javascript
-const bucketExists = await s3Client.bucketExists();
+const bucketExists = await s3client.bucketExists();
 console.log(`Bucket exists: ${bucketExists}`);
 ```
 
 #### Create Bucket
 
 ```javascript
-const created = await s3Client.createBucket();
+const created = await s3client.createBucket();
 console.log(`Bucket created: ${created}`);
 ```
 
@@ -106,7 +106,7 @@ console.log(`Bucket created: ${created}`);
 ```javascript
 const fileContent = 'Hello, World!';
 const key = 'example.txt';
-const response = await s3Client.putObject(key, fileContent);
+const response = await s3client.putObject(key, fileContent);
 console.log(`File uploaded successfully: ${response.status === 200}`);
 ```
 
@@ -114,7 +114,7 @@ console.log(`File uploaded successfully: ${response.status === 200}`);
 
 ```javascript
 const key = 'example.txt';
-const response = await s3Client.getObject(key);
+const response = await s3client.getObject(key);
 if (response) {
   const content = await response.text();
   console.log(`File content: ${content}`);
@@ -127,7 +127,7 @@ if (response) {
 
 ```javascript
 const key = 'example.txt';
-const { etag, data } = await s3Client.getObjectWithETag(key);
+const { etag, data } = await s3client.getObjectWithETag(key);
 if (data) {
   console.log(`File content: ${data}`);
   console.log(`ETag: ${etag}`);
@@ -138,7 +138,7 @@ if (data) {
 
 ```javascript
 const key = 'example.txt';
-const exists = await s3Client.objectExists(key);
+const exists = await s3client.objectExists(key);
 console.log(`File exists: ${exists}`);
 ```
 
@@ -146,7 +146,7 @@ console.log(`File exists: ${exists}`);
 
 ```javascript
 const key = 'example.txt';
-const etag = await s3Client.getEtag(key);
+const etag = await s3client.getEtag(key);
 console.log(`File ETag: ${etag}`);
 ```
 
@@ -154,7 +154,7 @@ console.log(`File ETag: ${etag}`);
 
 ```javascript
 const key = 'example.txt';
-const contentLength = await s3Client.getContentLength(key);
+const contentLength = await s3client.getContentLength(key);
 console.log(`File size: ${contentLength} bytes`);
 ```
 
@@ -162,7 +162,7 @@ console.log(`File size: ${contentLength} bytes`);
 
 ```javascript
 const key = 'example.txt';
-const response = await s3Client.getObjectRaw(key);
+const response = await s3client.getObjectRaw(key);
 // Process the raw response
 ```
 
@@ -170,7 +170,7 @@ const response = await s3Client.getObjectRaw(key);
 
 ```javascript
 const key = 'example.txt';
-const deleted = await s3Client.deleteObject(key);
+const deleted = await s3client.deleteObject(key);
 console.log(`File deleted: ${deleted}`);
 ```
 
@@ -181,7 +181,7 @@ console.log(`File deleted: ${deleted}`);
 ```javascript
 const key = 'large-file.txt';
 const fileType = 'text/plain';
-const uploadId = await s3Client.getMultipartUploadId(key, fileType);
+const uploadId = await s3client.getMultipartUploadId(key, fileType);
 console.log(`Multipart upload initiated with ID: ${uploadId}`);
 ```
 
@@ -193,7 +193,7 @@ const partContent = Buffer.from('Part content...');
 const uploadId = 'your-upload-id';
 const partNumber = 1;
 
-const partResult = await s3Client.uploadPart(key, partContent, uploadId, partNumber);
+const partResult = await s3client.uploadPart(key, partContent, uploadId, partNumber);
 console.log(`Part uploaded: ${JSON.stringify(partResult)}`);
 ```
 
@@ -207,7 +207,7 @@ const parts = [
   { partNumber: 2, ETag: 'etag2' },
 ];
 
-const result = await s3Client.completeMultipartUpload(key, uploadId, parts);
+const result = await s3client.completeMultipartUpload(key, uploadId, parts);
 console.log(`Multipart upload completed: ${JSON.stringify(result)}`);
 ```
 
@@ -217,7 +217,7 @@ console.log(`Multipart upload completed: ${JSON.stringify(result)}`);
 const key = 'large-file.txt';
 const uploadId = 'your-upload-id';
 
-const result = await s3Client.abortMultipartUpload(key, uploadId);
+const result = await s3client.abortMultipartUpload(key, uploadId);
 console.log(`Multipart upload aborted: ${JSON.stringify(result)}`);
 ```
 
@@ -230,7 +230,7 @@ const delimiter = '/';
 const prefix = 'folder/';
 const maxKeys = 1000;
 
-const objects = await s3Client.listObjects(delimiter, prefix, maxKeys);
+const objects = await s3client.listObjects(delimiter, prefix, maxKeys);
 console.log(`Objects: ${JSON.stringify(objects)}`);
 ```
 
@@ -240,50 +240,18 @@ console.log(`Objects: ${JSON.stringify(objects)}`);
 const delimiter = '/';
 const prefix = 'folder/';
 
-const uploads = await s3Client.listMultiPartUploads(delimiter, prefix);
+const uploads = await s3client.listMultiPartUploads(delimiter, prefix);
 console.log(`Multipart uploads: ${JSON.stringify(uploads)}`);
-```
-
-## Configuration Methods
-
-#### Get/Set Region
-
-```javascript
-// Get the current region
-const region = s3Client.getRegion();
-
-// Set a new region
-s3Client.setRegion('us-west-1');
-```
-
-#### Get/Set Endpoint
-
-```javascript
-// Get the current endpoint
-const endpoint = s3Client.getEndpoint();
-
-// Set a new endpoint
-s3Client.setEndpoint('https://new-s3-endpoint.com');
-```
-
-#### Get/Set Maximum Request Size
-
-```javascript
-// Get the current maximum request size in bytes
-const maxSize = s3Client.getMaxRequestSizeInBytes();
-
-// Set a new maximum request size (10MB)
-s3Client.setMaxRequestSizeInBytes(10 * 1024 * 1024);
 ```
 
 #### Get/Set All Properties
 
 ```javascript
 // Get all properties
-const props = s3Client.getProps();
+const props = s3client.getProps();
 
 // Set all properties
-s3Client.setProps({
+s3client.setProps({
   accessKeyId: 'NEW_ACCESS_KEY_ID',
   secretAccessKey: 'NEW_SECRET_ACCESS_KEY',
   endpoint: 'https://new-endpoint.com',
@@ -300,7 +268,7 @@ s3Client.setProps({
 
 ```javascript
 const rawETag = '"abcdef1234567890"';
-const sanitizedETag = s3Client.sanitizeETag(rawETag);
+const sanitizedETag = s3client.sanitizeETag(rawETag);
 console.log(`Sanitized ETag: ${sanitizedETag}`); // Outputs: abcdef1234567890
 ```
 
@@ -310,7 +278,7 @@ The library throws descriptive error messages for invalid parameters and failed 
 
 ```javascript
 try {
-  const result = await s3Client.getObject('non-existent-file.txt');
+  const result = await s3client.getObject('non-existent-file.txt');
   // Process result
 } catch (error) {
   console.error(`Error: ${error.message}`);
@@ -331,13 +299,13 @@ Many methods accept optional parameters for customization:
 
 ```javascript
 // Get with conditional headers
-const result = await s3Client.getObject('example.txt', {
+const result = await s3client.getObject('example.txt', {
   'if-match': 'etag-value',
   'if-modified-since': new Date().toUTCString(),
 });
 
 // List with additional options
-const objects = await s3Client.listObjects('/', 'folder/', 100, 'GET', {
+const objects = await s3client.listObjects('/', 'folder/', 100, 'GET', {
   'fetch-owner': 'true',
 });
 ```
@@ -359,7 +327,7 @@ const customLogger = {
   },
 };
 
-const s3Client = new S3({
+const s3client = new S3({
   // Other parameters
   logger: customLogger,
 });
