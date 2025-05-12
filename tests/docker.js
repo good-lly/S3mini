@@ -1,7 +1,7 @@
 'use strict';
 
 import { spawn } from 'child_process';
-import { join, resolve } from 'path';
+import { resolve } from 'path';
 
 const CWD = resolve('.');
 

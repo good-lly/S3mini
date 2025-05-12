@@ -100,7 +100,15 @@ export const testRunner = bucket => {
   it('basic list objects', async () => {
     const objects = await s3mini.listObjects();
     expect(objects).toBeInstanceOf(Array);
-    expect(objects.length).toBe(0);
+    if (objects.length > 0) {
+      for (const obj of objects) {
+        await s3mini.deleteObject(obj.key);
+      }
+    }
+    // Check if the bucket is empty
+    const objects2 = await s3mini.listObjects();
+    expect(objects2).toBeInstanceOf(Array);
+    expect(objects2.length).toBe(0);
 
     // listing non existent prefix thros 404 no such key
     const objectsWithPrefix = await s3mini.listObjects('non-existent-prefix');

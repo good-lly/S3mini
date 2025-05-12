@@ -49,6 +49,10 @@ class S3mini {
   private requestSizeInBytes: number;
   private requestAbortTimeout?: number;
   private logger?: IT.Logger;
+  private fullDatetime: string;
+  private shortDatetime: string;
+  private signingKey: Buffer;
+  private credentialScope: string;
 
   constructor({
     accessKeyId,
@@ -67,6 +71,10 @@ class S3mini {
     this.requestSizeInBytes = requestSizeInBytes;
     this.requestAbortTimeout = requestAbortTimeout;
     this.logger = logger;
+    this.fullDatetime = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
+    this.shortDatetime = this.fullDatetime.slice(0, 8);
+    this.signingKey = this._getSignatureKey(this.shortDatetime);
+    this.credentialScope = [this.shortDatetime, this.region, C.S3_SERVICE, C.AWS_REQUEST_TYPE].join('/');
   }
 
   private _sanitize(obj: unknown): unknown {
@@ -236,9 +244,7 @@ class S3mini {
     keyPath: string,
     query: Record<string, unknown> = {},
     headers: Record<string, string | number> = {},
-    body: string | Buffer,
   ): { url: string; headers: Record<string, string | number> } {
-    const datetime = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
     // Create URL without appending keyPath first
     const url = new URL(this.endpoint);
 
@@ -248,8 +254,8 @@ class S3mini {
         url.pathname === '/' ? `/${keyPath.replace(/^\/+/, '')}` : `${url.pathname}/${keyPath.replace(/^\/+/, '')}`;
     }
 
-    headers[C.HEADER_AMZ_CONTENT_SHA256] = body ? U.hash(body) : C.UNSIGNED_PAYLOAD;
-    headers[C.HEADER_AMZ_DATE] = datetime;
+    headers[C.HEADER_AMZ_CONTENT_SHA256] = C.UNSIGNED_PAYLOAD; // body ? U.hash(body) : C.UNSIGNED_PAYLOAD;
+    headers[C.HEADER_AMZ_DATE] = this.fullDatetime;
     headers[C.HEADER_HOST] = url.host;
     const canonicalHeaders = this._buildCanonicalHeaders(headers);
     const signedHeaders = Object.keys(headers)
@@ -257,10 +263,10 @@ class S3mini {
       .sort()
       .join(';');
 
-    const canonicalRequest = this._buildCanonicalRequest(method, url, query, canonicalHeaders, signedHeaders, body);
-    const stringToSign = this._buildStringToSign(datetime, canonicalRequest);
-    const signature = this._calculateSignature(datetime, stringToSign);
-    const authorizationHeader = this._buildAuthorizationHeader(datetime, signedHeaders, signature);
+    const canonicalRequest = this._buildCanonicalRequest(method, url, query, canonicalHeaders, signedHeaders);
+    const stringToSign = this._buildStringToSign(canonicalRequest);
+    const signature = this._calculateSignature(stringToSign);
+    const authorizationHeader = this._buildAuthorizationHeader(signedHeaders, signature);
     headers[C.HEADER_AUTHORIZATION] = authorizationHeader;
     return { url: url.toString(), headers };
   }
@@ -278,7 +284,6 @@ class S3mini {
     query: Record<string, unknown>,
     canonicalHeaders: string,
     signedHeaders: string,
-    body: string | Buffer,
   ): string {
     return [
       method,
@@ -286,24 +291,21 @@ class S3mini {
       this._buildCanonicalQueryString(query),
       `${canonicalHeaders}\n`,
       signedHeaders,
-      body ? U.hash(body) : C.UNSIGNED_PAYLOAD,
+      C.UNSIGNED_PAYLOAD,
     ].join('\n');
   }
 
-  private _buildStringToSign(datetime: string, canonicalRequest: string): string {
-    const credentialScope = [datetime.slice(0, 8), this.region, C.S3_SERVICE, C.AWS_REQUEST_TYPE].join('/');
-    return [C.AWS_ALGORITHM, datetime, credentialScope, U.hash(canonicalRequest)].join('\n');
+  private _buildStringToSign(canonicalRequest: string): string {
+    return [C.AWS_ALGORITHM, this.fullDatetime, this.credentialScope, U.hash(canonicalRequest)].join('\n');
   }
 
-  private _calculateSignature(datetime: string, stringToSign: string): string {
-    const signingKey = this._getSignatureKey(datetime.slice(0, 8));
-    return U.hmac(signingKey, stringToSign, 'hex') as string;
+  private _calculateSignature(stringToSign: string): string {
+    return U.hmac(this.signingKey, stringToSign, 'hex') as string;
   }
 
-  private _buildAuthorizationHeader(datetime: string, signedHeaders: string, signature: string): string {
-    const credentialScope = [datetime.slice(0, 8), this.region, C.S3_SERVICE, C.AWS_REQUEST_TYPE].join('/');
+  private _buildAuthorizationHeader(signedHeaders: string, signature: string): string {
     return [
-      `${C.AWS_ALGORITHM} Credential=${this.accessKeyId}/${credentialScope}`,
+      `${C.AWS_ALGORITHM} Credential=${this.accessKeyId}/${this.credentialScope}`,
       `SignedHeaders=${signedHeaders}`,
       `Signature=${signature}`,
     ].join(', ');
@@ -339,14 +341,14 @@ class S3mini {
       : { filteredOpts: query, conditionalHeaders: {} };
 
     const baseHeaders: Record<string, string | number> = {
-      [C.HEADER_AMZ_CONTENT_SHA256]: body ? U.hash(body) : C.UNSIGNED_PAYLOAD,
-      ...(['GET', 'HEAD'].includes(method) ? { [C.HEADER_CONTENT_TYPE]: C.JSON_CONTENT_TYPE } : {}),
+      [C.HEADER_AMZ_CONTENT_SHA256]: C.UNSIGNED_PAYLOAD,
+      // ...(['GET', 'HEAD'].includes(method) ? { [C.HEADER_CONTENT_TYPE]: C.JSON_CONTENT_TYPE } : {}),
       ...headers,
       ...conditionalHeaders,
     };
 
     const encodedKey = key ? U.uriResourceEscape(key) : '';
-    const { url, headers: signedHeaders } = this._sign(method, encodedKey, filteredOpts, baseHeaders, body);
+    const { url, headers: signedHeaders } = this._sign(method, encodedKey, filteredOpts, baseHeaders);
     if (Object.keys(query).length > 0) {
       withQuery = true; // append query string to signed URL
     }
@@ -779,7 +781,12 @@ class S3mini {
       const res = await fetch(url, {
         method,
         headers,
-        body: ['GET', 'HEAD'].includes(method) ? undefined : body,
+        keepalive: true,
+        body: ['GET', 'HEAD'].includes(method)
+          ? undefined
+          : typeof body === 'string'
+            ? body
+            : Buffer.from(body as Buffer),
         signal: this.requestAbortTimeout !== undefined ? AbortSignal.timeout(this.requestAbortTimeout) : undefined,
       });
       this._log('info', `Response status: ${res.status}, tolerated: ${toleratedStatusCodes.join(',')}`);
