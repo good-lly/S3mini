@@ -29,7 +29,7 @@ const large_buffer = randomBytes(EIGHT_MB * 3.2);
 
 const byteSize = str => new Blob([str]).size;
 
-const OP_CAP = 60;
+const OP_CAP = 40;
 
 const key = 'first-test-object.txt';
 const contentString = 'Hello, world!';
