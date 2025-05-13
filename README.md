@@ -1,87 +1,88 @@
-# 👶 S3mini: Essential only S3 client. Edge computing ready. Zero-dependency.
+# S3mini | Tiny & Blazing-fast S3 client built for edge.
 
-The `S3mini` library is only lightweight (~13KB) TypeScript zero‑dependency library for S3-compatible storage services. Running on NodeJS, Bun, Cloudflare Workers, and edge computing platforms. It supports only minimum S3 APIs. Tested on Cloudflare R2, Backblaze B2, DigitalOcean Storage, MinIO. (No Browser support)
+`S3mini` is ultra-lightweight (min ~14KB, +15% ops/s) TypeScript client for S3-compatible object storages. Running on Node, Bun, Cloudflare Workers, and edge platforms. It supports only a few S3 APIs. Tested on Cloudflare R2, Backblaze B2, DigitalOcean Storage, MinIO. (No Browser support)
 
 ## Features
 
-- 🚀 Lightweight: Only ~13KB unminified
-- 🔧 Zero dependencies
-- 💻 Works on NodeJS, Bun, Cloudflare workers, ideal for edge computing (no browser support)
-- 🔑 Supports only essential S3 APIs (list, put, get, delete and a few more)
-- 🔁 Streaming support & multipart uploads for large files
-- 📦 Bring your own S3 bucket (tested on: Cloudflare R2, Backblaze B2, DigitalOcean Storage, MinIO)
+- 🚀 Light and Fast: on average ~15% increase in ops/s and ~14KB in size (minified, not gzipped)
+- 🔧 Zero dependencies, supports AWS Sig v4 (no presigned reqs)
+- 🟠 Works on Cloudflare workers, ideal for edge computing, Node and Bun (no browser support)
+- 🔑 Only essential S3 APIs (improved list, put, get, delete and a few more)
+- 📦 BYOS3: _`Bring Your Own S3-compatible bucket`_ (tested on: Cloudflare R2, Backblaze B2, DigitalOcean Storage, MinIO with Ceph and Garage in the queue)
 
-## Supported Operations
+## Table of Contents
 
-The library supports the following operations:
+- [Supported Ops](#supported-ops)
+- [Installation](#installation)
+- [Usage](#usage)
+  - [Bucket Operations](#bucket-operations)
+  - [List Operations](#list-operations)
+  - [Object Operations](#object-operations)
+  - [Multipart Upload](#multipart-upload)
+  - [Useful Helpers](#useful-helpers)
+  - [Error Handling](#error-handling)
+  - [Advanced Usage](#advanced-usage)
+- [Security Notes](#security-notes)
+- [💙 Contributions welcomed!](#contributions-welcomed)
+- [License](#license)
+
+## Supported Ops
+
+The library supports a subset of S3 operations, focusing on essential features, making it suitable for environments with limited resources.
 
 #### Bucket ops
 
-- ✅ HeadBucket
-- ✅ CreateBucket
+- ✅ HeadBucket (bucketExists)
+- ✅ createBucket (createBucket)
 
 #### Objects ops
 
 - ✅ ListObjectsV2 (listObjects)
-- ✅ GetObject
-- ✅ PutObject
-- ✅ DeleteObject
-- ✅ HeadObject
-- ✅ ListMultipartUploads
-- ✅ CreateMultipartUpload
-- ✅ GetMultipartUploadId
-- ✅ CompleteMultipartUpload
-- ✅ AbortMultipartUpload
-- ✅ UploadPart
-
-Not implemented (tbd)
-
-- ❌ CopyObject
-
-## Table of Contents
-
-- [Installation](#installation)
-- [Constructor](#constructor)
-- [Basic Operations](#basic-operations)
-  - [Bucket Operations](#bucket-operations)
-  - [Object Operations](#object-operations)
-  - [Multipart Upload](#multipart-upload)
-  - [List Operations](#list-operations)
-- [Configuration Methods](#configuration-methods)
-- [Utility Methods](#utility-methods)
+- ✅ GetObject (getObject, getObjectWithETag, getObjectRaw, getObjectArrayBuffer)
+- ✅ PutObject (putObject)
+- ✅ DeleteObject (deleteObject)
+- ✅ HeadObject (objectExists, getEtag, getContentLength)
+- ✅ listMultipartUploads
+- ✅ CreateMultipartUpload (getMultipartUploadId)
+- ✅ completeMultipartUpload
+- ✅ abortMultipartUpload
+- ✅ uploadPart
+- ❌ CopyObject: Not implemented (tbd)
 
 ## Installation
 
-```javascript
-// Using npm
+```bash
 npm install S3mini
+```
 
-// Using yarn
+```bash
 yarn add S3mini
+```
 
-// Using pnpm
+```bash
 pnpm add S3mini
 ```
 
-## Constructor
+## Usage
 
-Create a new instance of the S3 client:
+#### Constructor
+
+Create a new instance of the S3mini client:
 
 ```javascript
 import { S3mini } from 'S3mini';
+// add S3Config types if needed for Typescript
 
 const s3client = new S3mini({
   accessKeyId: 'YOUR_ACCESS_KEY_ID',
   secretAccessKey: 'YOUR_SECRET_ACCESS_KEY',
-  endpoint: 'https://s3.amazonaws.com/...',
-  region: 'us-east-1', // Optional, defaults to 'auto'
-  maxRequestSizeInBytes: 5242880, // Optional, defaults to 5MB
-  requestAbortTimeout: 30000, // Optional, timeout in milliseconds
-  logger: console, // Optional, custom logger
+  endpoint: 'https://s3.amazonaws.com/...', // S3 endpoint (use your region or custom domain) including bucket name
+  region: 'us-east-1',// AWS region (use 'auto' for Cloudflare R2)
+  maxRequestSizeInBytes?: 8388608, // Optional, defaults to 8MB
+  requestAbortTimeout?: 30000, // Optional, timeout in milliseconds
+  logger?: console, // Optional, custom logger
 });
 ```
-
-## Basic Operations
 
 ### Bucket Operations
 
@@ -100,6 +101,29 @@ console.log(`Bucket created: ${created}`);
 ```
 
 ### Object Operations
+
+### List Operations
+
+#### List Objects
+
+```javascript
+const delimiter = '/';
+const prefix = 'folder/';
+const maxKeys = 1000;
+
+const objects = await s3client.listObjects(delimiter, prefix, maxKeys);
+console.log(`Objects: ${JSON.stringify(objects)}`);
+```
+
+#### List Multipart Uploads
+
+```javascript
+const delimiter = '/';
+const prefix = 'folder/';
+
+const uploads = await s3client.listMultiPartUploads(delimiter, prefix);
+console.log(`Multipart uploads: ${JSON.stringify(uploads)}`);
+```
 
 #### Upload a File
 
@@ -221,55 +245,34 @@ const result = await s3client.abortMultipartUpload(key, uploadId);
 console.log(`Multipart upload aborted: ${JSON.stringify(result)}`);
 ```
 
-### List Operations
-
-#### List Objects
-
-```javascript
-const delimiter = '/';
-const prefix = 'folder/';
-const maxKeys = 1000;
-
-const objects = await s3client.listObjects(delimiter, prefix, maxKeys);
-console.log(`Objects: ${JSON.stringify(objects)}`);
-```
-
-#### List Multipart Uploads
-
-```javascript
-const delimiter = '/';
-const prefix = 'folder/';
-
-const uploads = await s3client.listMultiPartUploads(delimiter, prefix);
-console.log(`Multipart uploads: ${JSON.stringify(uploads)}`);
-```
-
-#### Get/Set All Properties
-
-```javascript
-// Get all properties
-const props = s3client.getProps();
-
-// Set all properties
-s3client.setProps({
-  accessKeyId: 'NEW_ACCESS_KEY_ID',
-  secretAccessKey: 'NEW_SECRET_ACCESS_KEY',
-  endpoint: 'https://new-endpoint.com',
-  region: 'eu-west-1',
-  maxRequestSizeInBytes: 10485760,
-  requestAbortTimeout: 60000,
-  logger: customLogger,
-});
-```
-
-## Utility Methods
+## Useful Helpers
 
 #### Sanitize ETag
 
 ```javascript
-const rawETag = '"abcdef1234567890"';
+import { s3client, sanitizeETag } from 'S3mini';
+...
+const rawETag = '\"abcdef1234567890\"';
 const sanitizedETag = s3client.sanitizeETag(rawETag);
 console.log(`Sanitized ETag: ${sanitizedETag}`); // Outputs: abcdef1234567890
+```
+
+#### Ratelimiting and batching (runInBatches)
+
+Some operations can be rate-limited. Use the `runInBatches` method to process items in batches within a specified time interval:
+
+```javascript
+import { s3client, runInBatches } from 'S3mini';
+const OP_CAP = 50; // Max operations per second
+const INTERVAL = 1_000; // Interval in milliseconds
+const generator = function* (n) {
+  for (let i = 0; i < n; i++)
+    yield async () => {
+      await s3client.putObject(`${prefix}object${i}.txt`, 'hello world');
+    };
+};
+// you can feed runInBatches with any async generator or array of promises/async functions
+await runInBatches(generator(5000), OP_CAP, INTERVAL);
 ```
 
 ## Error Handling
@@ -285,12 +288,6 @@ try {
 }
 ```
 
-## Security Notes
-
-- The library masks sensitive information (access keys, session tokens, etc.) when logging.
-- Always protect your AWS credentials and avoid hardcoding them in your application.
-- Consider using environment variables or a secure vault for storing credentials.
-
 ## Advanced Usage
 
 ### Custom Headers and Options
@@ -302,11 +299,6 @@ Many methods accept optional parameters for customization:
 const result = await s3client.getObject('example.txt', {
   'if-match': 'etag-value',
   'if-modified-since': new Date().toUTCString(),
-});
-
-// List with additional options
-const objects = await s3client.listObjects('/', 'folder/', 100, 'GET', {
-  'fetch-owner': 'true',
 });
 ```
 
@@ -329,13 +321,31 @@ const customLogger = {
 
 const s3client = new S3({
   // Other parameters
-  logger: customLogger,
+  logger?: customLogger,
 });
 ```
 
-## Contributing
+## Security Notes
 
-Contributions are welcome! Please open an issue or submit a pull request.
+- The library masks sensitive information (access keys, session tokens, etc.) when logging.
+- Always protect your AWS credentials and avoid hardcoding them in your application(!!!) Use environment variables or a secure vault for storing credentials.
+- Ensure you have the necessary permissions to access the S3 bucket and perform operations.
+- Be cautious when using multipart uploads, as they can incur additional costs if not managed properly.
+- Authors are not responsible for any data loss or security breaches resulting from improper usage of the library.
+
+## Contributions welcomed!
+
+Contributions are greatly appreciated! If you have an idea for a new feature or have found a bug, we encourage you to get involved:
+
+- _Report Issues_: If you encounter a problem or have a feature request, please open an issue on GitHub. Include as much detail as possible (environment, error messages, logs, steps to reproduce, etc.) so we can understand and address the issue.
+
+- _Pull Requests_: We welcome PRs! If you want to implement a new feature or fix a bug, feel free to submit a pull request to the latest `dev branch`. For major changes, it's a good idea to discuss your plans in an issue first.
+
+- _Lightweight Philosophy_: When contributing, keep in mind that S3mini aims to remain lightweight and dependency-free. Please avoid adding heavy dependencies. New features should provide significant value to justify any increase in size.
+
+- _Community Conduct_: Be respectful and constructive in communications. We want a welcoming environment for all contributors. For more details, please refer to our [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). No one reads it, but it's there for a reason.
+
+If you figure out a solution to your question or problem on your own, please consider posting the answer or closing the issue with an explanation. It could help the next person who runs into the same thing!
 
 ## License
 
