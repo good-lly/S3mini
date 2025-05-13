@@ -22,7 +22,7 @@ export const HEADER_ETAG = 'etag';
 export const HEADER_LAST_MODIFIED = 'last-modified';
 
 // Error messages
-export const ERROR_PREFIX = '[S3mini] ';
+export const ERROR_PREFIX = '[s3mini] ';
 export const ERROR_ACCESS_KEY_REQUIRED = `${ERROR_PREFIX}accessKeyId must be a non-empty string`;
 export const ERROR_SECRET_KEY_REQUIRED = `${ERROR_PREFIX}secretAccessKey must be a non-empty string`;
 export const ERROR_ENDPOINT_REQUIRED = `${ERROR_PREFIX}endpoint must be a non-empty string`;

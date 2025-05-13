@@ -1,15 +1,15 @@
 {
-  "name": "S3mini",
+  "name": "s3mini",
   "version": "0.1.0",
-  "description": "👶 Tiny & Blazing-fast S3 client built for edge.",
-  "homepage": "https://github.com/good-lly/S3mini",
+  "description": "👶 Tiny & fast S3 client built for edge.",
+  "homepage": "https://github.com/good-lly/s3mini",
   "bugs": {
-    "url": "https://github.com/good-lly/S3mini/issues"
+    "url": "https://github.com/good-lly/s3mini/issues"
   },
   "author": "good-lly",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/good-lly/S3mini.git"
+    "url": "git+https://github.com/good-lly/s3mini.git"
   },
   "files": [
     "./dist/",
@@ -32,16 +32,16 @@
     "build": "npm run clean && npm run typecheck && rollup -c",
     "dev": "npm run clean && npm run typecheck -w && rollup -c -w"
   },
-  "main": "dist/S3mini.min.js",
-  "module": "dist/S3mini.js",
-  "types": "dist/S3mini.d.ts",
+  "main": "dist/s3mini.min.js",
+  "module": "dist/s3mini.js",
+  "types": "dist/s3mini.d.ts",
   "exports": {
     "import": {
-      "development": "./dist/S3mini.js",
-      "default": "./dist/S3mini.min.js"
+      "development": "./dist/s3mini.js",
+      "default": "./dist/s3mini.min.js"
     },
-    "require": "./dist/S3mini.min.js",
-    "types": "./dist/S3mini.d.ts"
+    "require": "./dist/s3mini.min.js",
+    "types": "./dist/s3mini.d.ts"
   },
   "sideEffects": false,
   "engines": {

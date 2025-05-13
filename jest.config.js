@@ -19,7 +19,7 @@ if (buckets.length === 0) {
 }
 
 export default {
-  displayName: 'S3mini full test',
+  displayName: 's3mini full test',
   silent: false,
   verbose: true,
   collectCoverage: false,

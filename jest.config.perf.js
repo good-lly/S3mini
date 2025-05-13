@@ -1,5 +1,5 @@
 export default {
-  displayName: 'S3mini performance test',
+  displayName: 's3mini performance test',
   testTimeout: 10000,
   silent: false,
   verbose: true,

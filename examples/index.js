@@ -1,6 +1,6 @@
 'use strict';
 
-import { CoreS3 } from '../dist/S3mini.js';
+import { s3mini } from '../dist/S3mini.js';
 import * as dotenv from 'dotenv';
 dotenv.config({ debug: false });
 
@@ -24,22 +24,22 @@ const providers = bucketEnv.map(bucket => bucket.provider);
 console.log('Configured providers:', providers);
 
 (async () => {
-  const coreS3 = new CoreS3(bucketEnv[0]);
-  console.log('CoreS3 instance:', bucketEnv[0], coreS3);
+  const s3client = new s3mini(bucketEnv[0]);
+  console.log('s3mini instance:', bucketEnv[0], s3client);
 
   // Head bucket - check if the bucket exists
   try {
-    const bucketExists = await coreS3.bucketExists();
+    const bucketExists = await s3client.bucketExists();
     console.log(`Bucket exists: ${bucketExists}`);
 
     if (bucketExists) {
       const fileContent = 'Hello, World!';
       const key = 'example.txt';
-      const response = await coreS3.put(key, fileContent);
+      const response = await s3client.put(key, fileContent);
       console.log(`File uploaded successfully: ${response.status === 200}`);
 
       if (response.status === 200) {
-        const file = await coreS3.get(key);
+        const file = await s3client.get(key);
         const respText = await file.text();
         console.log(`File content: ${respText}`);
         if (respText !== fileContent) {

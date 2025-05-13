@@ -1,6 +1,6 @@
-# S3mini | Tiny & fast S3 client built for the edge.
+# s3mini | Tiny & fast S3 client built for the edge.
 
-`S3mini` is an ultra-lightweight TypeScript client (~14 KB minified, ≈15 % more ops/s) for S3-compatible object storage. It runs on Node, Bun, Cloudflare Workers, and other edge platforms. It has been tested on Cloudflare R2, Backblaze B2, DigitalOcean Spaces, and MinIO. (No Browser support!)
+`s3mini` is an ultra-lightweight TypeScript client (~14 KB minified, ≈15 % more ops/s) for S3-compatible object storage. It runs on Node, Bun, Cloudflare Workers, and other edge platforms. It has been tested on Cloudflare R2, Backblaze B2, DigitalOcean Spaces, and MinIO. (No Browser support!)
 
 ## Features
 
@@ -10,16 +10,16 @@
 - 🔑 Only the essential S3 APIs—improved list, put, get, delete, and a few more.
 - 📦 **BYOS3** — _Bring your own S3-compatible bucket_ (tested on Cloudflare R2, Backblaze B2, DigitalOcean Spaces, MinIO; Ceph and Garage are in the queue).
 
-![GitHub Repo stars](https://img.shields.io/github/stars/good-lly/S3mini?style=social)
-![GitHub License](https://img.shields.io/github/license/good-lly/S3mini)
+![GitHub Repo stars](https://img.shields.io/github/stars/good-lly/s3mini?style=social)
+![GitHub License](https://img.shields.io/github/license/good-lly/s3mini)
 
 Dev:
-![GitHub package.json version](https://img.shields.io/github/package-json/v/good-lly/S3mini?color=green)
-![GitHub commit activity](https://img.shields.io/github/commit-activity/m/good-lly/S3mini)
-[![CodeQL Advanced](https://github.com/good-lly/S3mini/actions/workflows/codeql.yml/badge.svg?branch=dev)](https://github.com/good-lly/S3mini/actions/workflows/codeql.yml)
-[![Test:e2e(all)](https://github.com/good-lly/S3mini/actions/workflows/test-e2e.yml/badge.svg?branch=dev)](https://github.com/good-lly/S3mini/actions/workflows/test-e2e.yml)
+![GitHub package.json version](https://img.shields.io/github/package-json/v/good-lly/s3mini?color=green)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/m/good-lly/s3mini)
+[![CodeQL Advanced](https://github.com/good-lly/s3mini/actions/workflows/codeql.yml/badge.svg?branch=dev)](https://github.com/good-lly/s3mini/actions/workflows/codeql.yml)
+[![Test:e2e(all)](https://github.com/good-lly/s3mini/actions/workflows/test-e2e.yml/badge.svg?branch=dev)](https://github.com/good-lly/s3mini/actions/workflows/test-e2e.yml)
 
-![performance-image](https://raw.githubusercontent.com/good-lly/S3mini/dev/performance-screenshot.png)
+![performance-image](https://raw.githubusercontent.com/good-lly/s3mini/dev/performance-screenshot.png)
 
 ## Table of Contents
 
@@ -56,23 +56,23 @@ The library supports a subset of S3 operations, focusing on essential features, 
 ## Installation
 
 ```bash
-npm install S3mini
+npm install s3mini
 ```
 
 ```bash
-yarn add S3mini
+yarn add s3mini
 ```
 
 ```bash
-pnpm add S3mini
+pnpm add s3mini
 ```
 
 ## Usage
 
 ```typescript
-import { S3mini, sanitizeETag } from 'S3mini';
+import { s3mini, sanitizeETag } from 's3mini';
 
-const s3mini = new S3mini({
+const s3client = new s3mini({
   accessKeyId: config.accessKeyId,
   secretAccessKey: config.secretAccessKey,
   endpoint: config.endpoint,
@@ -83,13 +83,13 @@ const s3mini = new S3mini({
 let exists: boolean = false;
 try {
   // Check if the bucket exists
-  exists = await s3mini.bucketExists();
+  exists = await s3client.bucketExists();
 } catch (err) {
   throw new Error(`Failed bucketExists() call, wrong credentials maybe: ${err.message}`);
 }
 if (!exists) {
   // Create the bucket based on the endpoint bucket name
-  await s3mini.createBucket();
+  await s3client.createBucket();
 }
 
 // Basic object ops
@@ -100,19 +100,19 @@ const smallObjectKey: string = 'small-object.txt';
 const smallObjectContent: string = 'Hello, world!';
 
 // check if the object exists
-const objectExists: boolean = await s3mini.objectExists(smallObjectKey);
+const objectExists: boolean = await s3client.objectExists(smallObjectKey);
 let etag: string | null = null;
 if (!objectExists) {
   // put/upload the object, content can be a string or Buffer
   // to add object into "folder", use "folder/filename.txt" as key
-  const resp: Response = await s3mini.putObject(smallObjectKey, smallObjectContent);
+  const resp: Response = await s3client.putObject(smallObjectKey, smallObjectContent);
   // you can also get etag via getEtag method
-  // const etag: string = await s3mini.getEtag(smallObjectKey);
+  // const etag: string = await s3client.getEtag(smallObjectKey);
   etag = sanitizeETag(resp.headers.get('etag'));
 }
 
 // get the object, null if not found
-const objectData: string | null = await s3mini.getObject(smallObjectKey);
+const objectData: string | null = await s3client.getObject(smallObjectKey);
 console.log('Object data:', objectData);
 
 // get the object with ETag, null if not found
@@ -132,8 +132,8 @@ if (response2) {
 // so it will return all objects in the bucket which can take a while
 // If you want to limit the number of objects returned, use the maxKeys option
 // If you want to list objects in a specific "folder", use "folder/" as prefix
-// Example s3mini.listObjects({"/" "myfolder/"})
-const list: object[] | null = await s3mini.listObjects();
+// Example s3client.listObjects({"/" "myfolder/"})
+const list: object[] | null = await s3client.listObjects();
 if (list) {
   console.log('List of objects:', list);
 } else {
@@ -141,7 +141,7 @@ if (list) {
 }
 
 // delete the object
-const wasDeleted: boolean = await s3mini.deleteObject(smallObjectKey);
+const wasDeleted: boolean = await s3client.deleteObject(smallObjectKey);
 
 // Multipart upload
 const multipartKey = 'multipart-object.txt';
@@ -150,7 +150,7 @@ const partSize = 8 * 1024 * 1024; // 8 MB
 const totalParts = Math.ceil(large_buffer.length / partSize);
 // Beware! This will return always a new uploadId
 // if you want to use the same uploadId, you need to store it somewhere
-const uploadId = await s3mini.getMultipartUploadId(multipartKey);
+const uploadId = await s3client.getMultipartUploadId(multipartKey);
 const uploadPromises = [];
 for (let i = 0; i < totalParts; i++) {
   const partBuffer = large_buffer.subarray(i * partSize, (i + 1) * partSize);
@@ -159,7 +159,7 @@ for (let i = 0; i < totalParts; i++) {
   // but be careful with the number of parallel uploads, it can cause throttling
   // or errors if you upload too many parts at once
   // You can also use generator functions to upload parts in batches
-  uploadPromises.push(s3mini.uploadPart(multipartKey, uploadId, partBuffer, i + 1));
+  uploadPromises.push(s3client.uploadPart(multipartKey, uploadId, partBuffer, i + 1));
 }
 const uploadResponses = await Promise.all(uploadPromises);
 const parts = uploadResponses.map((response, index) => ({
@@ -167,20 +167,20 @@ const parts = uploadResponses.map((response, index) => ({
   etag: response.etag,
 }));
 // Complete the multipart upload
-const completeResponse = await s3mini.completeMultipartUpload(multipartKey, uploadId, parts);
+const completeResponse = await s3client.completeMultipartUpload(multipartKey, uploadId, parts);
 const completeEtag = completeResponse.etag;
 
 // List multipart uploads
 // returns object with uploadId and key
-const multipartUploads: object = await s3mini.listMultipartUploads();
+const multipartUploads: object = await s3client.listMultipartUploads();
 // Abort the multipart upload
-const abortResponse = await s3mini.abortMultipartUpload(multipartUploads.key, multipartUploads.uploadId);
+const abortResponse = await s3client.abortMultipartUpload(multipartUploads.key, multipartUploads.uploadId);
 
 // Multipart download
 // lets test getObjectRaw with range
 const rangeStart = 2048 * 1024; // 2 MB
 const rangeEnd = 8 * 1024 * 1024 * 2; // 16 MB
-const rangeResponse = await s3mini.getObjectRaw(multipartKey, false, rangeStart, rangeEnd);
+const rangeResponse = await s3client.getObjectRaw(multipartKey, false, rangeStart, rangeEnd);
 const rangeData = await rangeResponse.arrayBuffer();
 ```
 
@@ -203,7 +203,7 @@ Contributions are greatly appreciated! If you have an idea for a new feature or 
 
 - _Pull Requests_: We welcome PRs! If you want to implement a new feature or fix a bug, feel free to submit a pull request to the latest `dev branch`. For major changes, it's a good idea to discuss your plans in an issue first.
 
-- _Lightweight Philosophy_: When contributing, keep in mind that S3mini aims to remain lightweight and dependency-free. Please avoid adding heavy dependencies. New features should provide significant value to justify any increase in size.
+- _Lightweight Philosophy_: When contributing, keep in mind that s3mini aims to remain lightweight and dependency-free. Please avoid adding heavy dependencies. New features should provide significant value to justify any increase in size.
 
 - _Community Conduct_: Be respectful and constructive in communications. We want a welcoming environment for all contributors. For more details, please refer to our [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). No one reads it, but it's there for a reason.
 

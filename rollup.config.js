@@ -27,12 +27,12 @@ export default [
     input: 'src/index.ts',
     output: [
       {
-        file: 'dist/S3mini.js',
+        file: 'dist/s3mini.js',
         format: 'esm',
         sourcemap: true,
       },
       {
-        file: 'dist/S3mini.min.js',
+        file: 'dist/s3mini.min.js',
         format: 'esm',
         sourcemap: true,
         plugins: [terserMin],
@@ -56,7 +56,7 @@ export default [
   {
     input: 'src/index.ts',
     output: {
-      file: 'dist/S3mini.d.ts',
+      file: 'dist/s3mini.d.ts',
       format: 'esm',
     },
     plugins: [dts()],
