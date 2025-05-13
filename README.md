@@ -21,13 +21,6 @@
 - [Supported Ops](#supported-ops)
 - [Installation](#installation)
 - [Usage](#usage)
-  - [Bucket Operations](#bucket-operations)
-  - [List Operations](#list-operations)
-  - [Object Operations](#object-operations)
-  - [Multipart Upload](#multipart-upload)
-  - [Useful Helpers](#useful-helpers)
-  - [Error Handling](#error-handling)
-  - [Advanced Usage](#advanced-usage)
 - [Security Notes](#security-notes)
 - [💙 Contributions welcomed!](#contributions-welcomed)
 - [License](#license)
@@ -71,265 +64,122 @@ pnpm add S3mini
 
 ## Usage
 
-#### Constructor
+```typescript
+import { S3mini, sanitizeETag } from 'S3mini';
 
-Create a new instance of the S3mini client:
-
-```javascript
-import { S3mini } from 'S3mini';
-// add S3Config types if needed for Typescript
-
-const s3client = new S3mini({
-  accessKeyId: 'YOUR_ACCESS_KEY_ID',
-  secretAccessKey: 'YOUR_SECRET_ACCESS_KEY',
-  endpoint: 'https://s3.amazonaws.com/...', // S3 endpoint (use your region or custom domain) including bucket name
-  region: 'us-east-1',// AWS region (use 'auto' for Cloudflare R2)
-  maxRequestSizeInBytes?: 8388608, // Optional, defaults to 8MB
-  requestAbortTimeout?: 30000, // Optional, timeout in milliseconds
-  logger?: console, // Optional, custom logger
+const s3mini = new S3mini({
+  accessKeyId: config.accessKeyId,
+  secretAccessKey: config.secretAccessKey,
+  endpoint: config.endpoint,
+  region: config.region,
 });
-```
 
-### Bucket Operations
-
-#### Check if Bucket Exists
-
-```javascript
-const bucketExists = await s3client.bucketExists();
-console.log(`Bucket exists: ${bucketExists}`);
-```
-
-#### Create Bucket
-
-```javascript
-const created = await s3client.createBucket();
-console.log(`Bucket created: ${created}`);
-```
-
-### Object Operations
-
-### List Operations
-
-#### List Objects
-
-```javascript
-const delimiter = '/';
-const prefix = 'folder/';
-const maxKeys = 1000;
-
-const objects = await s3client.listObjects(delimiter, prefix, maxKeys);
-console.log(`Objects: ${JSON.stringify(objects)}`);
-```
-
-#### List Multipart Uploads
-
-```javascript
-const delimiter = '/';
-const prefix = 'folder/';
-
-const uploads = await s3client.listMultiPartUploads(delimiter, prefix);
-console.log(`Multipart uploads: ${JSON.stringify(uploads)}`);
-```
-
-#### Upload a File
-
-```javascript
-const fileContent = 'Hello, World!';
-const key = 'example.txt';
-const response = await s3client.putObject(key, fileContent);
-console.log(`File uploaded successfully: ${response.status === 200}`);
-```
-
-#### Get a File
-
-```javascript
-const key = 'example.txt';
-const response = await s3client.getObject(key);
-if (response) {
-  const content = await response.text();
-  console.log(`File content: ${content}`);
-} else {
-  console.log('File not found');
-}
-```
-
-#### Get a File with ETag
-
-```javascript
-const key = 'example.txt';
-const { etag, data } = await s3client.getObjectWithETag(key);
-if (data) {
-  console.log(`File content: ${data}`);
-  console.log(`ETag: ${etag}`);
-}
-```
-
-#### Check if File Exists
-
-```javascript
-const key = 'example.txt';
-const exists = await s3client.objectExists(key);
-console.log(`File exists: ${exists}`);
-```
-
-#### Get ETag of a File
-
-```javascript
-const key = 'example.txt';
-const etag = await s3client.getEtag(key);
-console.log(`File ETag: ${etag}`);
-```
-
-#### Get Content Length
-
-```javascript
-const key = 'example.txt';
-const contentLength = await s3client.getContentLength(key);
-console.log(`File size: ${contentLength} bytes`);
-```
-
-#### Get Raw Response
-
-```javascript
-const key = 'example.txt';
-const response = await s3client.getObjectRaw(key);
-// Process the raw response
-```
-
-#### Delete a File
-
-```javascript
-const key = 'example.txt';
-const deleted = await s3client.deleteObject(key);
-console.log(`File deleted: ${deleted}`);
-```
-
-### Multipart Upload
-
-#### Initiate Multipart Upload
-
-```javascript
-const key = 'large-file.txt';
-const fileType = 'text/plain';
-const uploadId = await s3client.getMultipartUploadId(key, fileType);
-console.log(`Multipart upload initiated with ID: ${uploadId}`);
-```
-
-#### Upload Part
-
-```javascript
-const key = 'large-file.txt';
-const partContent = Buffer.from('Part content...');
-const uploadId = 'your-upload-id';
-const partNumber = 1;
-
-const partResult = await s3client.uploadPart(key, partContent, uploadId, partNumber);
-console.log(`Part uploaded: ${JSON.stringify(partResult)}`);
-```
-
-#### Complete Multipart Upload
-
-```javascript
-const key = 'large-file.txt';
-const uploadId = 'your-upload-id';
-const parts = [
-  { partNumber: 1, ETag: 'etag1' },
-  { partNumber: 2, ETag: 'etag2' },
-];
-
-const result = await s3client.completeMultipartUpload(key, uploadId, parts);
-console.log(`Multipart upload completed: ${JSON.stringify(result)}`);
-```
-
-#### Abort Multipart Upload
-
-```javascript
-const key = 'large-file.txt';
-const uploadId = 'your-upload-id';
-
-const result = await s3client.abortMultipartUpload(key, uploadId);
-console.log(`Multipart upload aborted: ${JSON.stringify(result)}`);
-```
-
-## Useful Helpers
-
-#### Sanitize ETag
-
-```javascript
-import { s3client, sanitizeETag } from 'S3mini';
-...
-const rawETag = '\"abcdef1234567890\"';
-const sanitizedETag = s3client.sanitizeETag(rawETag);
-console.log(`Sanitized ETag: ${sanitizedETag}`); // Outputs: abcdef1234567890
-```
-
-#### Ratelimiting and batching (runInBatches)
-
-Some operations can be rate-limited. Use the `runInBatches` method to process items in batches within a specified time interval:
-
-```javascript
-import { s3client, runInBatches } from 'S3mini';
-const OP_CAP = 50; // Max operations per second
-const INTERVAL = 1_000; // Interval in milliseconds
-const generator = function* (n) {
-  for (let i = 0; i < n; i++)
-    yield async () => {
-      await s3client.putObject(`${prefix}object${i}.txt`, 'hello world');
-    };
-};
-// you can feed runInBatches with any async generator or array of promises/async functions
-await runInBatches(generator(5000), OP_CAP, INTERVAL);
-```
-
-## Error Handling
-
-The library throws descriptive error messages for invalid parameters and failed operations. Always use try-catch blocks when working with asynchronous operations:
-
-```javascript
+// Basic bucket ops
+let exists: boolean = false;
 try {
-  const result = await s3client.getObject('non-existent-file.txt');
-  // Process result
-} catch (error) {
-  console.error(`Error: ${error.message}`);
+  // Check if the bucket exists
+  exists = await s3mini.bucketExists();
+} catch (err) {
+  throw new Error(`Failed bucketExists() call, wrong credentials maybe: ${err.message}`);
 }
+if (!exists) {
+  // Create the bucket based on the endpoint bucket name
+  await s3mini.createBucket();
+}
+
+// Basic object ops
+// key is the name of the object in the bucket
+const smallObjectKey: string = 'small-object.txt';
+// content is the data you want to store in the object
+// it can be a string or Buffer (recommended for large objects)
+const smallObjectContent: string = 'Hello, world!';
+
+// check if the object exists
+const objectExists: boolean = await s3mini.objectExists(smallObjectKey);
+let etag: string | null = null;
+if (!objectExists) {
+  // put/upload the object, content can be a string or Buffer
+  // to add object into "folder", use "folder/filename.txt" as key
+  const resp: Response = await s3mini.putObject(smallObjectKey, smallObjectContent);
+  // you can also get etag via getEtag method
+  // const etag: string = await s3mini.getEtag(smallObjectKey);
+  etag = sanitizeETag(resp.headers.get('etag'));
+}
+
+// get the object, null if not found
+const objectData: string | null = await s3mini.getObject(smallObjectKey);
+console.log('Object data:', objectData);
+
+// get the object with ETag, null if not found
+const response2: Response = await s3mini.getObject(smallObjectKey, { 'if-none-match': etag });
+if (response2) {
+  // ETag changed so we can get the object data and new ETag
+  // Note: ETag is not guaranteed to be the same as the MD5 hash of the object
+  // ETag is sanitized to remove quotes
+  const etag2: string = sanitizeETag(response2.headers.get('etag'));
+  console.log('Object data with ETag:', response2.body, 'ETag:', etag2);
+} else {
+  console.log('Object not found or ETag does match.');
+}
+
+// list objects in the bucket, null if bucket is empty
+// Note: listObjects uses listObjectsV2 API and iterate over all pages
+// so it will return all objects in the bucket which can take a while
+// If you want to limit the number of objects returned, use the maxKeys option
+// If you want to list objects in a specific "folder", use "folder/" as prefix
+// Example s3mini.listObjects({"/" "myfolder/"})
+const list: object[] | null = await s3mini.listObjects();
+if (list) {
+  console.log('List of objects:', list);
+} else {
+  console.log('No objects found in the bucket.');
+}
+
+// delete the object
+const wasDeleted: boolean = await s3mini.deleteObject(smallObjectKey);
+
+// Multipart upload
+const multipartKey = 'multipart-object.txt';
+const large_buffer = new Uint8Array(1024 * 1024 * 15); // 15 MB buffer
+const partSize = 8 * 1024 * 1024; // 8 MB
+const totalParts = Math.ceil(large_buffer.length / partSize);
+// Beware! This will return always a new uploadId
+// if you want to use the same uploadId, you need to store it somewhere
+const uploadId = await s3mini.getMultipartUploadId(multipartKey);
+const uploadPromises = [];
+for (let i = 0; i < totalParts; i++) {
+  const partBuffer = large_buffer.subarray(i * partSize, (i + 1) * partSize);
+  // upload each part
+  // Note: uploadPart returns a promise, so you can use Promise.all to upload all parts in parallel
+  // but be careful with the number of parallel uploads, it can cause throttling
+  // or errors if you upload too many parts at once
+  // You can also use generator functions to upload parts in batches
+  uploadPromises.push(s3mini.uploadPart(multipartKey, uploadId, partBuffer, i + 1));
+}
+const uploadResponses = await Promise.all(uploadPromises);
+const parts = uploadResponses.map((response, index) => ({
+  partNumber: index + 1,
+  etag: response.etag,
+}));
+// Complete the multipart upload
+const completeResponse = await s3mini.completeMultipartUpload(multipartKey, uploadId, parts);
+const completeEtag = completeResponse.etag;
+
+// List multipart uploads
+// returns object with uploadId and key
+const multipartUploads: object = await s3mini.listMultipartUploads();
+// Abort the multipart upload
+const abortResponse = await s3mini.abortMultipartUpload(multipartUploads.key, multipartUploads.uploadId);
+
+// Multipart download
+// lets test getObjectRaw with range
+const rangeStart = 2048 * 1024; // 2 MB
+const rangeEnd = 8 * 1024 * 1024 * 2; // 16 MB
+const rangeResponse = await s3mini.getObjectRaw(multipartKey, false, rangeStart, rangeEnd);
+const rangeData = await rangeResponse.arrayBuffer();
 ```
 
-## Advanced Usage
-
-### Custom Headers and Options
-
-Many methods accept optional parameters for customization:
-
-```javascript
-// Get with conditional headers
-const result = await s3client.getObject('example.txt', {
-  'if-match': 'etag-value',
-  'if-modified-since': new Date().toUTCString(),
-});
-```
-
-### Custom Logger Integration
-
-The library supports custom loggers for better integration with your application's logging system:
-
-```javascript
-const customLogger = {
-  info: message => {
-    /* Custom info logging */
-  },
-  error: message => {
-    /* Custom error logging */
-  },
-  warn: message => {
-    /* Custom warning logging */
-  },
-};
-
-const s3client = new S3({
-  // Other parameters
-  logger?: customLogger,
-});
-```
+For more check [USAGE.md](USAGE.md) file, examples and tests.
 
 ## Security Notes
 

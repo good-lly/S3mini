@@ -28,7 +28,7 @@ export default defineConfig([
     'jest.config.js',
     'jest.config.perf.js',
     'tsconfig.json',
-    'README.md',
+    '*.md',
     '.copilotignore',
     '.*.env',
     '.env',
