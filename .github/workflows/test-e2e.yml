@@ -1,0 +1,40 @@
+name: Test:e2e(all)
+
+on:
+  push:
+    branches: [dev]
+  pull_request:
+    branches: [dev]
+env:
+  BUCKET_ENV_BACKBLAZE: ${{ secrets.BUCKET_ENV_BACKBLAZE }}
+  BUCKET_ENV_MINIO: ${{ secrets.BUCKET_ENV_MINIO }}
+  BUCKET_ENV_CLOUDFLARE: ${{ secrets.BUCKET_ENV_CLOUDFLARE }}
+  BUCKET_ENV_DIGITALOCEAN: ${{ secrets.BUCKET_ENV_DIGITALOCEAN }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 0
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Docker version
+        run: docker --version && docker compose version
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build project
+        run: npm run build
+
+      - name: Run e2e tests
+        run: npm run test:e2e
+        env:
+          BUCKET_ENV_BACKBLAZE: ${{ secrets.BUCKET_ENV_BACKBLAZE }}
+          BUCKET_ENV_MINIO: ${{ secrets.BUCKET_ENV_MINIO }}
+          BUCKET_ENV_CLOUDFLARE: ${{ secrets.BUCKET_ENV_CLOUDFLARE }}
+          BUCKET_ENV_DIGITALOCEAN: ${{ secrets.BUCKET_ENV_DIGITALOCEAN }}
