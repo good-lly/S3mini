@@ -1,6 +1,10 @@
 # s3mini | Tiny & fast S3 client built for the edge.
 
-`s3mini` is an ultra-lightweight TypeScript client (~14 KB minified, ≈15 % more ops/s) for S3-compatible object storage. It runs on Node, Bun, Cloudflare Workers, and other edge platforms. It has been tested on Cloudflare R2, Backblaze B2, DigitalOcean Spaces, and MinIO. (No Browser support!)
+`s3mini` is an ultra-lightweight Typescript client (~14 KB minified, ≈15 % more ops/s) for S3-compatible object storage. It runs on Node, Bun, Cloudflare Workers, and other edge platforms. It has been tested on Cloudflare R2, Backblaze B2, DigitalOcean Spaces, and MinIO. (No Browser support!)
+
+[[github](https://github.com/good-lly/s3mini)]
+[[issues](https://github.com/good-lly/s3mini/issues)]
+[[npm](https://www.npmjs.com/package/s3mini)]
 
 ## Features
 
@@ -10,14 +14,18 @@
 - 🔑 Only the essential S3 APIs—improved list, put, get, delete, and a few more.
 - 📦 **BYOS3** — _Bring your own S3-compatible bucket_ (tested on Cloudflare R2, Backblaze B2, DigitalOcean Spaces, MinIO; Ceph and Garage are in the queue).
 
-![GitHub Repo stars](https://img.shields.io/github/stars/good-lly/s3mini?style=social)
-![GitHub License](https://img.shields.io/github/license/good-lly/s3mini)
-
 Dev:
-![GitHub package.json version](https://img.shields.io/github/package-json/v/good-lly/s3mini?color=green)
-![GitHub commit activity](https://img.shields.io/github/commit-activity/m/good-lly/s3mini)
+
+![GitHub commit activity (branch)](https://img.shields.io/github/commit-activity/m/good-lly/s3mini/dev?color=greeen)
+![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/good-lly/s3mini)
 [![CodeQL Advanced](https://github.com/good-lly/s3mini/actions/workflows/codeql.yml/badge.svg?branch=dev)](https://github.com/good-lly/s3mini/actions/workflows/codeql.yml)
 [![Test:e2e(all)](https://github.com/good-lly/s3mini/actions/workflows/test-e2e.yml/badge.svg?branch=dev)](https://github.com/good-lly/s3mini/actions/workflows/test-e2e.yml)
+
+![GitHub Repo stars](https://img.shields.io/github/stars/good-lly/s3mini?style=social)
+![NPM Downloads](https://img.shields.io/npm/dm/s3mini)
+![NPM Version](https://img.shields.io/npm/v/s3mini?color=green)
+![npm package minimized gzipped size](https://img.shields.io/bundlejs/size/s3mini?color=green)
+![GitHub License](https://img.shields.io/github/license/good-lly/s3mini)
 
 ![performance-image](https://raw.githubusercontent.com/good-lly/s3mini/dev/performance-screenshot.png)
 
