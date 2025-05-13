@@ -1,7 +1,7 @@
 {
   "name": "S3mini",
-  "version": "0.0.1",
-  "description": "🪶 A super lightweight S3 client, no-dependency, ideal for edges like @cloudflare @aws @Azure @GoogleCloudPlatform @ceph @minio written in TypeScript",
+  "version": "0.1.0",
+  "description": "👶 Tiny & Blazing-fast S3 client built for edge.",
   "homepage": "https://github.com/good-lly/S3mini",
   "bugs": {
     "url": "https://github.com/good-lly/S3mini/issues"
