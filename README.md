@@ -1,20 +1,25 @@
-# S3mini | Tiny & Blazing-fast S3 client built for edge.
+# S3mini | Tiny & fast S3 client built for the edge.
 
-`S3mini` is ultra-lightweight (min ~14KB, +15% ops/s) TypeScript client for S3-compatible object storages. Running on Node, Bun, Cloudflare Workers, and edge platforms. It supports only a few S3 APIs. Tested on Cloudflare R2, Backblaze B2, DigitalOcean Storage, MinIO. (No Browser support)
+`S3mini` is an ultra-lightweight TypeScript client (~14 KB minified, ≈15 % more ops/s) for S3-compatible object storage. It runs on Node, Bun, Cloudflare Workers, and other edge platforms. It has been tested on Cloudflare R2, Backblaze B2, DigitalOcean Spaces, and MinIO. (No Browser support!)
 
 ## Features
 
-- 🚀 Light and Fast: on average ~15% increase in ops/s and ~14KB in size (minified, not gzipped)
-- 🔧 Zero dependencies, supports AWS Sig v4 (no presigned reqs)
-- 🟠 Works on Cloudflare workers, ideal for edge computing, Node and Bun (no browser support)
-- 🔑 Only essential S3 APIs (improved list, put, get, delete and a few more)
-- 📦 BYOS3: _`Bring Your Own S3-compatible bucket`_ (tested on: Cloudflare R2, Backblaze B2, DigitalOcean Storage, MinIO with Ceph and Garage in the queue)
+- 🚀 Light and fast: averages ≈15 % more ops/s and only ~14 KB (minified, not gzipped).
+- 🔧 Zero dependencies; supports AWS SigV4 (no pre-signed requests).
+- 🟠 Works on Cloudflare Workers; ideal for edge computing, Node, and Bun (no browser support).
+- 🔑 Only the essential S3 APIs—improved list, put, get, delete, and a few more.
+- 📦 **BYOS3** — _Bring your own S3-compatible bucket_ (tested on Cloudflare R2, Backblaze B2, DigitalOcean Spaces, MinIO; Ceph and Garage are in the queue).
 
-[![CodeQL Advanced](https://github.com/good-lly/S3mini/actions/workflows/codeql.yml/badge.svg?branch=dev)](https://github.com/good-lly/S3mini/actions/workflows/codeql.yml)
-![GitHub License](https://img.shields.io/github/license/good-lly/S3mini)
-![GitHub commit activity](https://img.shields.io/github/commit-activity/m/good-lly/S3mini)
-![GitHub package.json version](https://img.shields.io/github/package-json/v/good-lly/S3mini?color=green)
 ![GitHub Repo stars](https://img.shields.io/github/stars/good-lly/S3mini?style=social)
+![GitHub License](https://img.shields.io/github/license/good-lly/S3mini)
+
+Dev:
+![GitHub package.json version](https://img.shields.io/github/package-json/v/good-lly/S3mini?color=green)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/m/good-lly/S3mini)
+[![CodeQL Advanced](https://github.com/good-lly/S3mini/actions/workflows/codeql.yml/badge.svg?branch=dev)](https://github.com/good-lly/S3mini/actions/workflows/codeql.yml)
+[![Test:e2e(all)](https://github.com/good-lly/S3mini/actions/workflows/test-e2e.yml/badge.svg?branch=dev)](https://github.com/good-lly/S3mini/actions/workflows/test-e2e.yml)
+
+![performance-image](https://raw.githubusercontent.com/good-lly/S3mini/dev/performance-screenshot.png)
 
 ## Table of Contents
 
@@ -184,10 +189,11 @@ For more check [USAGE.md](USAGE.md) file, examples and tests.
 ## Security Notes
 
 - The library masks sensitive information (access keys, session tokens, etc.) when logging.
-- Always protect your AWS credentials and avoid hardcoding them in your application(!!!) Use environment variables or a secure vault for storing credentials.
+- Always protect your AWS credentials and avoid hard-coding them in your application (!!!). Use environment variables. Use environment variables or a secure vault for storing credentials.
 - Ensure you have the necessary permissions to access the S3 bucket and perform operations.
 - Be cautious when using multipart uploads, as they can incur additional costs if not managed properly.
 - Authors are not responsible for any data loss or security breaches resulting from improper usage of the library.
+- If you find a security vulnerability, please report it to us directly via email. For more details, please refer to the [SECURITY.md](SECURITY.md) file.
 
 ## Contributions welcomed!
 
