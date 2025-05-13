@@ -10,6 +10,12 @@
 - 🔑 Only essential S3 APIs (improved list, put, get, delete and a few more)
 - 📦 BYOS3: _`Bring Your Own S3-compatible bucket`_ (tested on: Cloudflare R2, Backblaze B2, DigitalOcean Storage, MinIO with Ceph and Garage in the queue)
 
+[![CodeQL Advanced](https://github.com/good-lly/S3mini/actions/workflows/codeql.yml/badge.svg?branch=dev)](https://github.com/good-lly/S3mini/actions/workflows/codeql.yml)
+![GitHub License](https://img.shields.io/github/license/good-lly/S3mini)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/m/good-lly/S3mini)
+![GitHub package.json version](https://img.shields.io/github/package-json/v/good-lly/S3mini?color=green)
+![GitHub Repo stars](https://img.shields.io/github/stars/good-lly/S3mini?style=social)
+
 ## Table of Contents
 
 - [Supported Ops](#supported-ops)
