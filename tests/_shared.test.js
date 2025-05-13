@@ -1,6 +1,6 @@
 'use strict';
-import { jest, describe, it, expect } from '@jest/globals';
-import { s3client, sanitizeETag, runInBatches } from '../dist/s3client.js';
+import { jest, it, expect } from '@jest/globals';
+import { s3mini, sanitizeETag, runInBatches } from '../dist/s3mini.js';
 import { randomBytes } from 'node:crypto';
 
 // import * as dotenv from 'dotenv';

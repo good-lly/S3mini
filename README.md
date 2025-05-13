@@ -27,6 +27,7 @@ Dev:
 ![npm package minimized gzipped size](https://img.shields.io/bundlejs/size/s3mini?color=green)
 ![GitHub License](https://img.shields.io/github/license/good-lly/s3mini)
 
+Performance tests was done on local Minio instance. Your results may vary depending on environment and network conditions, so take it with a grain of salt.
 ![performance-image](https://raw.githubusercontent.com/good-lly/s3mini/dev/performance-screenshot.png)
 
 ## Table of Contents
@@ -220,3 +221,9 @@ If you figure out a solution to your question or problem on your own, please con
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+
+## Sponsor This Project
+
+Developing and maintaining s3mini (and other open-source projects) requires time and effort. If you find this library useful, please consider sponsoring its development. Your support helps ensure I can continue improving s3mini and other projects. Thank you!
+
+[![Become a Sponsor](https://img.shields.io/badge/💸_GitHub-Sponsor-ff69b4?logo=github&logoColor=white)](https://github.com/sponsors/good-lly)
