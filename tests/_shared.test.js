@@ -77,7 +77,7 @@ export const testRunner = bucket => {
   });
 
   it('instantiates s3client', () => {
-    expect(s3client).toBeInstanceOf(s3client); // ← updated expectation
+    expect(s3client).toBeInstanceOf(s3mini); // ← updated expectation
   });
 
   it('bucket exists', async () => {
@@ -89,7 +89,7 @@ export const testRunner = bucket => {
     }
     expect(exists).toBe(true);
 
-    const nonExistentBucket = new s3client({
+    const nonExistentBucket = new s3mini({
       accessKeyId: bucket.accessKeyId,
       secretAccessKey: bucket.secretAccessKey,
       endpoint: bucket.endpoint + '/non-existent-bucket',
